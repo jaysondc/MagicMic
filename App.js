@@ -1,20 +1,51 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import HomeScreen from './screens/HomeScreen';
+import AddSongScreen from './screens/AddSongScreen';
+import SongDetailsScreen from './screens/SongDetailsScreen';
+import { theme } from './lib/theme';
+
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: theme.colors.surface,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border,
+            },
+            headerTintColor: theme.colors.text,
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            cardStyle: { backgroundColor: theme.colors.background },
+          }}
+        >
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AddSong"
+            component={AddSongScreen}
+            options={{ title: 'Add Song' }}
+          />
+          <Stack.Screen
+            name="SongDetails"
+            component={SongDetailsScreen}
+            options={{ title: 'Song Details' }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+      <StatusBar style="light" />
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
