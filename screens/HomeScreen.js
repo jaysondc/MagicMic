@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import SongList from '../components/SongList';
 import TagFilter from '../components/TagFilter';
-import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase } from '../lib/database';
+import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase, runMigrations } from '../lib/database';
 import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
 
@@ -16,6 +16,7 @@ export default function HomeScreen({ navigation }) {
 
     useEffect(() => {
         initDatabase();
+        runMigrations(); // Add missing columns to existing databases
         loadData();
     }, []);
 
@@ -120,6 +121,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border,
         backgroundColor: theme.colors.surface,
+        marginBottom: theme.spacing.m,
     },
     headerButtons: {
         flexDirection: 'row',
@@ -132,12 +134,13 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     searchContainer: {
-        padding: theme.spacing.m,
+        paddingBottom: theme.spacing.s,
+        paddingHorizontal: theme.spacing.m,
         backgroundColor: theme.colors.background,
     },
     searchInput: {
         backgroundColor: theme.colors.surface,
-        padding: theme.spacing.s,
+        padding: theme.spacing.m,
         borderRadius: theme.borderRadius.m,
         color: theme.colors.text,
         borderWidth: 1,

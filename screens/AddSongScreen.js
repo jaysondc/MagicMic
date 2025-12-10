@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
-import { addSong } from '../lib/database';
+import { addSong, updateSong } from '../lib/database';
 
 export default function AddSongScreen({ navigation }) {
     const [query, setQuery] = useState('');
@@ -40,8 +40,16 @@ export default function AddSongScreen({ navigation }) {
     const handleAddSong = (item) => {
         try {
             const songId = addSong(item.trackName, item.artistName);
-            // Ideally we would also save album art, preview url, etc.
-            // updateSong(songId, { album_cover_url: item.artworkUrl100, ... })
+
+            // Save album artwork and preview URL
+            // Get higher quality artwork by replacing 100x100 with 600x600
+            const highResArtwork = item.artworkUrl100?.replace('100x100bb', '600x600bb');
+
+            updateSong(songId, {
+                album_cover_url: highResArtwork || item.artworkUrl100,
+                audio_sample_url: item.previewUrl, // 30-second preview
+            });
+
             alert(`Added "${item.trackName}" to your library!`);
             navigation.goBack();
         } catch (err) {

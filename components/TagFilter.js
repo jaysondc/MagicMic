@@ -95,7 +95,6 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.label}>Filter by Tags:</Text>
                 <TouchableOpacity onPress={toggleExpand}>
                     <Text style={styles.expandText}>{expanded ? 'Collapse ▲' : 'Expand ▼'}</Text>
                 </TouchableOpacity>
@@ -118,12 +117,12 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: theme.spacing.s,
+
         backgroundColor: theme.colors.background,
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         paddingHorizontal: theme.spacing.m,
         marginBottom: theme.spacing.s,
     },
