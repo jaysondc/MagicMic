@@ -6,13 +6,14 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import TagFilter from '../components/TagFilter';
 import { theme } from '../lib/theme';
-import { getSongs, getTags, linkTagToSong, deleteSong, db } from '../lib/database';
+import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, db } from '../lib/database';
 
 export default function SongDetailsScreen({ route, navigation }) {
     const { songId } = route.params;
     const [song, setSong] = useState(null);
     const [allTags, setAllTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
+    const [lyricsExpanded, setLyricsExpanded] = useState(false);
 
     // Audio Player State
     const [sound, setSound] = useState(null);
@@ -47,11 +48,45 @@ export default function SongDetailsScreen({ route, navigation }) {
         if (foundSong) {
             setSong(foundSong);
             setSelectedTags(foundSong.tags ? foundSong.tags.map(t => t.id) : []);
+
+            // Fetch lyrics if missing
+            if (!foundSong.lyrics) {
+                fetchLyrics(foundSong);
+            }
         }
     };
 
     const loadTags = () => {
         setAllTags(getTags());
+    };
+
+    const fetchLyrics = async (song) => {
+        if (!song || !song.title || !song.artist) return;
+
+        console.log('Fetching lyrics for:', song.title, song.artist);
+        try {
+            // Build URL with duration only if available
+            let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(song.artist)}&track_name=${encodeURIComponent(song.title)}`;
+            if (song.duration_ms) {
+                const durationSeconds = Math.round(song.duration_ms / 1000);
+                url += `&duration=${durationSeconds}`;
+            }
+
+            const response = await fetch(url);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.plainLyrics) {
+                    // Update database
+                    updateSong(song.id, { lyrics: data.plainLyrics });
+
+                    // Update local state
+                    setSong(prev => ({ ...prev, lyrics: data.plainLyrics }));
+                }
+            }
+        } catch (error) {
+            console.log('Error fetching lyrics:', error);
+        }
     };
 
     const handleToggleTag = (tagId) => {
@@ -161,7 +196,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                 <View style={styles.headerContainer}>
                     <View style={styles.titleContainer}>
                         <Text style={styles.title}>{song.title}</Text>
-                        <Text style={styles.artist}>{song.artist}</Text>
+                        <Text style={styles.artist}>
+                            {song.artist}
+                            {song.duration_ms ? ` • ${Math.floor(song.duration_ms / 60000)}:${((song.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}` : ''}
+                        </Text>
                     </View>
 
                     {song.audio_sample_url && (
@@ -211,6 +249,24 @@ export default function SongDetailsScreen({ route, navigation }) {
                         onTagsChanged={loadTags}
                     />
                 </View>
+
+                {song.lyrics && (
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={styles.sectionTitle}>Lyrics</Text>
+                            <TouchableOpacity onPress={() => setLyricsExpanded(!lyricsExpanded)}>
+                                <Ionicons
+                                    name={lyricsExpanded ? "chevron-up" : "chevron-down"}
+                                    size={24}
+                                    color={theme.colors.textSecondary}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.lyrics} numberOfLines={lyricsExpanded ? undefined : 10}>
+                            {song.lyrics}
+                        </Text>
+                    </View>
+                )}
 
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Metadata</Text>
@@ -284,11 +340,22 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: theme.spacing.l,
     },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: theme.spacing.s,
+    },
     sectionTitle: {
         color: theme.colors.textSecondary,
         fontSize: 14,
         textTransform: 'uppercase',
         marginBottom: theme.spacing.s,
+    },
+    lyrics: {
+        ...theme.textVariants.body,
+        color: theme.colors.text,
+        lineHeight: 24,
     },
     row: {
         flexDirection: 'row',

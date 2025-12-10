@@ -7,7 +7,10 @@ const SongList = ({ songs, onSongPress }) => {
         <TouchableOpacity style={styles.item} onPress={() => onSongPress && onSongPress(item)}>
             <View style={styles.info}>
                 <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.artist}>{item.artist}</Text>
+                <Text style={styles.artist}>
+                    {item.artist}
+                    {item.duration_ms ? ` • ${Math.floor(item.duration_ms / 60000)}:${((item.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}` : ''}
+                </Text>
 
                 {item.tags && item.tags.length > 0 && (
                     <View style={styles.tagsContainer}>

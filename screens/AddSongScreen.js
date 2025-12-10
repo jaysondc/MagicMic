@@ -39,15 +39,13 @@ export default function AddSongScreen({ navigation }) {
 
     const handleAddSong = (item) => {
         try {
-            const songId = addSong(item.trackName, item.artistName);
-
-            // Save album artwork and preview URL
             // Get higher quality artwork by replacing 100x100 with 600x600
             const highResArtwork = item.artworkUrl100?.replace('100x100bb', '600x600bb');
 
-            updateSong(songId, {
+            addSong(item.trackName, item.artistName, {
                 album_cover_url: highResArtwork || item.artworkUrl100,
-                audio_sample_url: item.previewUrl, // 30-second preview
+                audio_sample_url: item.previewUrl,
+                duration_ms: item.trackTimeMillis
             });
 
             alert(`Added "${item.trackName}" to your library!`);
