@@ -14,9 +14,7 @@ import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
 
 if (Platform.OS === 'android') {
-    if (UIManager.setLayoutAnimationEnabledExperimental) {
-        UIManager.setLayoutAnimationEnabledExperimental(true);
-    }
+    // Android specific configs
 }
 
 const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
