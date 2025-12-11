@@ -6,8 +6,7 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "go:web": "expo start --web --dev-client",
-    "go:android": "expo start --android --dev-client"
+    "bundle:android": "npx react-native bundle --platform android --dev true --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res",
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.5",
@@ -30,6 +29,9 @@
     "react-native-svg": "15.11.2",
     "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "^0.20.0"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "latest"
   },
   "private": true
 }
