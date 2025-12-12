@@ -4,7 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { addSong, updateSong } from '../lib/database';
 
+import { useToast } from '../context/ToastContext';
+
 export default function AddSongScreen({ navigation }) {
+    const { showToast } = useToast();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -48,10 +51,10 @@ export default function AddSongScreen({ navigation }) {
                 duration_ms: item.trackTimeMillis
             });
 
-            alert(`Added "${item.trackName}" to your library!`);
+            showToast({ message: `Added "${item.trackName}"`, type: 'success' });
             navigation.goBack();
         } catch (err) {
-            alert('Error adding song: ' + err.message);
+            showToast({ message: 'Error adding song', type: 'error' });
         }
     };
 

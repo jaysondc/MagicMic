@@ -8,7 +8,10 @@ import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase, runMigrat
 import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
 
-export default function HomeScreen({ navigation }) {
+import { useToast } from '../context/ToastContext';
+
+export default function HomeScreen({ navigation, route }) {
+    const { showToast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [songs, setSongs] = useState([]);
     const [tags, setTags] = useState([]);
@@ -31,6 +34,13 @@ export default function HomeScreen({ navigation }) {
         });
         return unsubscribe;
     }, [navigation]);
+
+    // Listen for refresh requests (e.g., from undo action)
+    useEffect(() => {
+        if (route.params?.refresh) {
+            loadData();
+        }
+    }, [route.params?.refresh]);
 
     const loadData = () => {
         loadSongs();
@@ -61,9 +71,9 @@ export default function HomeScreen({ navigation }) {
             resetDatabase();
             seedDatabase(seedData);
             loadData();
-            alert('Database seeded successfully!');
+            showToast({ message: 'Database seeded successfully!', type: 'success' });
         } catch (error) {
-            alert('Error seeding database: ' + error.message);
+            showToast({ message: 'Error seeding database', type: 'error' });
         }
     };
 

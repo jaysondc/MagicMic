@@ -8,12 +8,16 @@ TODO List for KaraokeVault
 - [ ] Song Album Art
     - [ ] Song List
     - [ ] Song Details
-- [ ] Song Lyrics
+- [ ] Star Ratings
+- [X] Song Lyrics
 - [X] Song Preview
 - [ ] Auto-populate tags
 - [ ] Roulette based on filters
 - [ ] Add Manually
 - [ ] Sort song list by date added?
+- [ ] Download lyrics when adding a song
+- [ ] Create toast instead of dialog
+- [ ] Delete Tags
 
 # Bugs
 - [ ] Song list doesn't update when a song is added

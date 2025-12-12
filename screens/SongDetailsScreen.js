@@ -6,10 +6,12 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import TagFilter from '../components/TagFilter';
 import { theme } from '../lib/theme';
-import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, db } from '../lib/database';
+import { useToast } from '../context/ToastContext';
+import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, addSong, db } from '../lib/database';
 
 export default function SongDetailsScreen({ route, navigation }) {
     const { songId } = route.params;
+    const { showToast } = useToast();
     const [song, setSong] = useState(null);
     const [allTags, setAllTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
@@ -136,7 +138,7 @@ export default function SongDetailsScreen({ route, navigation }) {
             }
         } catch (error) {
             console.log('Error playing sound', error);
-            Alert.alert('Error', 'Could not play song preview.');
+            showToast({ message: 'Could not play song preview', type: 'error' });
         }
     };
 
@@ -155,21 +157,49 @@ export default function SongDetailsScreen({ route, navigation }) {
     };
 
     const handleDelete = () => {
-        Alert.alert(
-            "Delete Song",
-            "Are you sure you want to delete this song?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                        deleteSong(songId);
-                        navigation.goBack();
+        // Prepare for restore with ALL fields
+        const songToRestore = { ...song, tags: selectedTags };
+
+        deleteSong(songId);
+        navigation.goBack();
+
+        showToast({
+            message: 'Song deleted',
+            type: 'info',
+            actionLabel: 'UNDO',
+            duration: 5000,
+            onAction: () => {
+                try {
+                    // Restore song with ALL fields
+                    const newId = addSong(songToRestore.title, songToRestore.artist, {
+                        album_cover_url: songToRestore.album_cover_url,
+                        audio_sample_url: songToRestore.audio_sample_url,
+                        duration_ms: songToRestore.duration_ms,
+                        lyrics: songToRestore.lyrics,
+                        lyrics_preview: songToRestore.lyrics_preview,
+                        status: songToRestore.status,
+                        my_rating: songToRestore.my_rating,
+                        sing_count: songToRestore.sing_count,
+                        last_sung_date: songToRestore.last_sung_date,
+                        category: songToRestore.category,
+                        created_at: songToRestore.created_at,
+                        updated_at: songToRestore.updated_at
+                    });
+
+                    // Restore tags
+                    if (songToRestore.tags && songToRestore.tags.length > 0) {
+                        songToRestore.tags.forEach(tagId => linkTagToSong(newId, tagId));
                     }
+
+                    // Trigger HomeScreen refresh
+                    navigation.navigate('Home', { refresh: Date.now() });
+
+                    showToast({ message: 'Song restored!', type: 'success' });
+                } catch (e) {
+                    showToast({ message: 'Failed to restore song.', type: 'error' });
                 }
-            ]
-        );
+            }
+        });
     };
 
     if (!song) {
