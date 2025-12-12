@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 
 const SongList = ({ songs, onSongPress }) => {
+    const insets = useSafeAreaInsets();
+
     const renderItem = ({ item }) => (
         <TouchableOpacity style={styles.item} onPress={() => onSongPress && onSongPress(item)}>
             <View style={styles.info}>
@@ -35,15 +38,12 @@ const SongList = ({ songs, onSongPress }) => {
                     <Text style={styles.emptyText}>No songs found.</Text>
                 </View>
             }
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]}
         />
     );
 };
 
 const styles = StyleSheet.create({
-    listContent: {
-        paddingBottom: 20,
-    },
     item: {
         padding: theme.spacing.m,
         borderBottomWidth: 1,

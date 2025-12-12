@@ -16,20 +16,22 @@ TODO List for KaraokeVault
 - [ ] Add Manually
 - [ ] Sort song list by date added?
 - [ ] Download lyrics when adding a song
-- [ ] Create toast instead of dialog
+- [X] Create toast instead of dialog
 - [ ] Delete Tags
 
 # Bugs
-- [ ] Song list doesn't update when a song is added
+- [X] Song list doesn't update when a song is added
 - [ ] Tag filtering is OR instead of AND
 
 # Polish
 - [ ] Remove Repertoire Tag
-- [ ] Change Add Song button to FAB
+- [X] Change Add Song button to FAB
 - [ ] Fix dim hold state
 - [ ] Custom Dialog Style
 - [ ] Prevent Duplicate Entries
 - [ ] Delete button style
 - [ ] Move metadata to bottom
+- [ ] Loading state for lyrics
+- [ ] Polish loading state for song search
 
 

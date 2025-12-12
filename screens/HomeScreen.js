@@ -7,8 +7,9 @@ import TagFilter from '../components/TagFilter';
 import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase, runMigrations } from '../lib/database';
 import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
-
 import { useToast } from '../context/ToastContext';
+import FloatingActionButton from '../components/FloatingActionButton';
+
 
 export default function HomeScreen({ navigation, route }) {
     const { showToast } = useToast();
@@ -90,8 +91,6 @@ export default function HomeScreen({ navigation, route }) {
                 <Text style={styles.title}>KaraokeVault</Text>
                 <View style={styles.headerButtons}>
                     <Button title="Seed" onPress={handleSeed} color={theme.colors.secondary} />
-                    <View style={styles.buttonSpacer} />
-                    <Button title="Add Song" onPress={() => navigation.navigate('AddSong')} color={theme.colors.primary} />
                 </View>
             </View>
             <View style={styles.searchContainer}>
@@ -113,6 +112,7 @@ export default function HomeScreen({ navigation, route }) {
                 songs={filteredSongs}
                 onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
             />
+            <FloatingActionButton onPress={() => navigation.navigate('AddSong')} />
             <StatusBar style="light" />
         </SafeAreaView>
     );
