@@ -12,12 +12,13 @@ import {
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
+import { Ionicons } from '@expo/vector-icons';
 
 if (Platform.OS === 'android') {
     // Android specific configs
 }
 
-const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
+const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged, sortLabel, onSortPress }) => {
     const [expanded, setExpanded] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [newTagName, setNewTagName] = useState('');
@@ -92,6 +93,18 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
         );
     };
 
+    const showSort = !!onSortPress;
+
+    const renderSortChip = () => (
+        <TouchableOpacity
+            style={[styles.sortChip, expanded && styles.sortChipExpanded]}
+            onPress={onSortPress}
+        >
+            <Text style={styles.sortChipText}>{sortLabel || 'Sort'}</Text>
+            <Ionicons name="filter" size={12} color={theme.colors.background} style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+    );
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -102,14 +115,23 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
 
             {expanded ? (
                 <View style={styles.grid}>
+                    {showSort && renderSortChip()}
                     {tags.map(renderTag)}
                     {renderAddTag()}
                 </View>
             ) : (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
-                    {tags.map(renderTag)}
-                    {renderAddTag()}
-                </ScrollView>
+                <View style={styles.contentRow}>
+                    {showSort && (
+                        <>
+                            {renderSortChip()}
+                            <View style={styles.separator} />
+                        </>
+                    )}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.scroll}>
+                        {tags.map(renderTag)}
+                        {renderAddTag()}
+                    </ScrollView>
+                </View>
             )}
         </View>
     );
@@ -134,8 +156,35 @@ const styles = StyleSheet.create({
         color: theme.colors.secondary,
         fontSize: 12,
     },
-    scroll: {
+    contentRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
         paddingHorizontal: theme.spacing.m,
+    },
+    separator: {
+        width: 8,
+    },
+    sortChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.secondary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: theme.borderRadius.round,
+        height: 32,
+    },
+    sortChipExpanded: {
+        marginRight: 8,
+        marginBottom: 8,
+    },
+    sortChipText: {
+        color: theme.colors.background,
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    scroll: {
+        flex: 1,
     },
     grid: {
         flexDirection: 'row',
@@ -150,6 +199,7 @@ const styles = StyleSheet.create({
         marginRight: 8,
         marginBottom: 8,
         minWidth: 40,
+        height: 32,
         alignItems: 'center',
         justifyContent: 'center',
     },

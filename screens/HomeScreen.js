@@ -9,6 +9,7 @@ import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import FloatingActionButton from '../components/FloatingActionButton';
+import SortBottomSheet from '../components/SortBottomSheet';
 
 
 export default function HomeScreen({ navigation, route }) {
@@ -18,6 +19,11 @@ export default function HomeScreen({ navigation, route }) {
     const [tags, setTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
 
+    // Sort State
+    const [sortBy, setSortBy] = useState('created_at');
+    const [sortOrder, setSortOrder] = useState('DESC');
+    const [sortSheetVisible, setSortSheetVisible] = useState(false);
+
     useEffect(() => {
         initDatabase();
         runMigrations(); // Add missing columns to existing databases
@@ -26,15 +32,15 @@ export default function HomeScreen({ navigation, route }) {
 
     useEffect(() => {
         loadSongs();
-    }, [searchQuery]);
+    }, [searchQuery, sortBy, sortOrder]);
 
-    // Reload data when screen comes into focus (e.g. after adding a song)
+    // Reload data when screen comes into focus (e.g. after adding a song or returning from details)
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
             loadData();
         });
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, searchQuery, sortBy, sortOrder]);
 
     // Listen for refresh requests (e.g., from undo action)
     useEffect(() => {
@@ -49,7 +55,7 @@ export default function HomeScreen({ navigation, route }) {
     };
 
     const loadSongs = () => {
-        const allSongs = getSongs(searchQuery);
+        const allSongs = getSongs(searchQuery, sortBy, sortOrder);
         setSongs(allSongs);
     };
 
@@ -76,6 +82,33 @@ export default function HomeScreen({ navigation, route }) {
         } catch (error) {
             showToast({ message: 'Error seeding database', type: 'error' });
         }
+    };
+
+    const handleSortSelect = (newSortBy) => {
+        if (sortBy === newSortBy) {
+            // Toggle order
+            setSortOrder(prev => prev === 'ASC' ? 'DESC' : 'ASC');
+        } else {
+            // New sort, default to DESC (usually better for dates/counts)
+            setSortBy(newSortBy);
+            setSortOrder('DESC');
+        }
+    };
+
+    const handleSortPress = () => {
+        setSortSheetVisible(true);
+    };
+
+    const getSortLabel = () => {
+        const labels = {
+            'created_at': 'Added',
+            'last_sung_date': 'Sung',
+            'sing_count': '# Sung',
+            'my_rating': 'Rating',
+            'updated_at': 'Updated'
+        };
+        const arrow = sortOrder === 'ASC' ? '▲' : '▼';
+        return `${labels[sortBy] || 'Sort'} ${arrow}`;
     };
 
     // Filter songs by selected tags
@@ -107,12 +140,20 @@ export default function HomeScreen({ navigation, route }) {
                 selectedTags={selectedTags}
                 onToggleTag={handleToggleTag}
                 onTagsChanged={loadTags}
+                sortLabel={getSortLabel()}
+                onSortPress={handleSortPress}
             />
             <SongList
                 songs={filteredSongs}
                 onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
             />
             <FloatingActionButton onPress={() => navigation.navigate('AddSong')} />
+            <SortBottomSheet
+                visible={sortSheetVisible}
+                onClose={() => setSortSheetVisible(false)}
+                currentSortBy={sortBy}
+                onSelectSort={handleSortSelect}
+            />
             <StatusBar style="light" />
         </SafeAreaView>
     );

@@ -14,7 +14,7 @@ TODO List for KaraokeVault
 - [ ] Auto-populate tags
 - [ ] Roulette based on filters
 - [ ] Add Manually
-- [ ] Sort song list by date added?
+- [X] Sort song list by date added?
 - [ ] Download lyrics when adding a song
 - [X] Create toast instead of dialog
 - [ ] Delete Tags
