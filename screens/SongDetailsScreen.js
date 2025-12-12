@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Audio } from 'expo-av';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
 import TagFilter from '../components/TagFilter';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
@@ -96,6 +97,49 @@ export default function SongDetailsScreen({ route, navigation }) {
     const handleRatingChange = (newRating) => {
         setSong(prev => ({ ...prev, my_rating: newRating }));
         updateSong(songId, { my_rating: newRating });
+    };
+
+    // Animation values for Mark as Sung button
+    const scale = useSharedValue(1);
+    const successOpacity = useSharedValue(0);
+
+    const animatedButtonStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    const successStyle = useAnimatedStyle(() => {
+        return {
+            opacity: successOpacity.value,
+            transform: [{ translateY: withTiming(successOpacity.value === 1 ? -20 : 0) }]
+        };
+    });
+
+    const handleMarkAsSung = () => {
+        // Haptic feedback could be added here if expo-haptics was available
+
+        // Animation
+        scale.value = withSequence(
+            withTiming(0.9, { duration: 100 }),
+            withSpring(1, { damping: 50, stiffness: 500 })
+        );
+
+        // Show "+1" floating text
+        successOpacity.value = withSequence(
+            withTiming(1, { duration: 200 }),
+            withTiming(0, { duration: 800, delay: 500 }) // Fade out after delay
+        );
+
+        // Update Data
+        const newCount = (song.sing_count || 0) + 1;
+        const now = Date.now();
+
+        updateSong(songId, { sing_count: newCount, last_sung_date: now });
+        setSong(prev => ({ ...prev, sing_count: newCount, last_sung_date: now }));
+
+        // Optional: Trigger a toast for backup feedback
+        // showToast({ message: 'Marked as sung!', type: 'success' });
     };
 
     const handleToggleTag = (tagId) => {
@@ -286,9 +330,50 @@ export default function SongDetailsScreen({ route, navigation }) {
                         onTagsChanged={loadTags}
                     />
                 </View>
-           
+
                 {/* Rating Widget */}
-                <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Rating</Text>
+                    <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
+                </View>
+
+                {/* Performance / Stats Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Performance</Text>
+                    <View style={styles.statsContainer}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{song.sing_count || 0}</Text>
+                            <Text style={styles.statLabel}>Times Sung</Text>
+                        </View>
+                        <View style={styles.verticalDivider} />
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>
+                                {song.last_sung_date
+                                    ? new Date(song.last_sung_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                    : '--'}
+                            </Text>
+                            <Text style={styles.statLabel}>Last Sung</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.actionContainer}>
+                        <Animated.View style={[styles.markSungButtonContainer, animatedButtonStyle]}>
+                            <TouchableOpacity
+                                style={styles.markSungButton}
+                                onPress={handleMarkAsSung}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="mic" size={24} color={theme.colors.background} style={{ marginRight: 8 }} />
+                                <Text style={styles.markSungText}>Mark as Sung</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+
+                        {/* Floating +1 Feedback */}
+                        <Animated.View style={[styles.successFeedback, successStyle]}>
+                            <Text style={styles.successText}>+1</Text>
+                        </Animated.View>
+                    </View>
+                </View>
 
                 {song.lyrics && (
                     <View style={styles.section}>
@@ -376,7 +461,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.actions}>
-                    <Button title="Delete Song" onPress={handleDelete} color={theme.colors.error} />
+                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                        <Ionicons name="trash-outline" size={20} color={theme.colors.error} style={{ marginRight: 8 }} />
+                        <Text style={styles.deleteButtonText}>Delete Song</Text>
+                    </TouchableOpacity>
                 </View>
 
             </ScrollView>
@@ -423,7 +511,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     section: {
-        marginBottom: theme.spacing.l,
+        marginBottom: theme.spacing.m,
     },
     sectionHeader: {
         flexDirection: 'row',
@@ -462,5 +550,92 @@ const styles = StyleSheet.create({
     },
     actions: {
         marginTop: theme.spacing.xl,
+        marginBottom: theme.spacing.xl,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.m,
+        padding: theme.spacing.m,
+        marginBottom: theme.spacing.m,
+        justifyContent: 'space-around',
+        alignItems: 'center',
+    },
+    statBox: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    statValue: {
+        color: theme.colors.secondary,
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    statLabel: {
+        color: theme.colors.textSecondary,
+        fontSize: 12,
+        textTransform: 'uppercase',
+    },
+    verticalDivider: {
+        width: 1,
+        height: '80%',
+        backgroundColor: theme.colors.border,
+    },
+    actionContainer: {
+        alignItems: 'center',
+        position: 'relative', // For absolute positioning of feedback
+        zIndex: 1,
+    },
+    markSungButtonContainer: {
+        width: '100%',
+    },
+    markSungButton: {
+        backgroundColor: theme.colors.secondary,
+        borderRadius: theme.borderRadius.round,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: theme.colors.secondary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    markSungText: {
+        color: theme.colors.background,
+        fontSize: 18,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    successFeedback: {
+        position: 'absolute',
+        top: -30,
+        zIndex: 10,
+        backgroundColor: theme.colors.success,
+        borderRadius: theme.borderRadius.round,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+    },
+    successText: {
+        color: theme.colors.background,
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    deleteButton: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: theme.spacing.m,
+        borderRadius: theme.borderRadius.m,
+        borderWidth: 1,
+        borderColor: theme.colors.error,
+        backgroundColor: 'transparent', // Ghost style
+        opacity: 0.8,
+    },
+    deleteButtonText: {
+        color: theme.colors.error,
+        fontSize: 16,
+        fontWeight: '600',
     }
 });

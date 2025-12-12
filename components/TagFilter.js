@@ -117,7 +117,6 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged }) => {
 
 const styles = StyleSheet.create({
     container: {
-
         backgroundColor: theme.colors.background,
     },
     header: {

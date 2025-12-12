@@ -113,7 +113,6 @@ const styles = StyleSheet.create({
         paddingVertical: theme.spacing.m,
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.m,
-        marginVertical: theme.spacing.m,
     },
     starsContainer: {
         flexDirection: 'row',
