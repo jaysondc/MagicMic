@@ -8,6 +8,7 @@ import TagFilter from '../components/TagFilter';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, addSong, db } from '../lib/database';
+import RatingWidget from '../components/RatingWidget';
 
 export default function SongDetailsScreen({ route, navigation }) {
     const { songId } = route.params;
@@ -90,6 +91,11 @@ export default function SongDetailsScreen({ route, navigation }) {
         } catch (error) {
             console.log('Error fetching lyrics:', error);
         }
+    };
+
+    const handleRatingChange = (newRating) => {
+        setSong(prev => ({ ...prev, my_rating: newRating }));
+        updateSong(songId, { my_rating: newRating });
     };
 
     const handleToggleTag = (tagId) => {
@@ -280,6 +286,9 @@ export default function SongDetailsScreen({ route, navigation }) {
                         onTagsChanged={loadTags}
                     />
                 </View>
+           
+                {/* Rating Widget */}
+                <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
 
                 {song.lyrics && (
                     <View style={styles.section}>
