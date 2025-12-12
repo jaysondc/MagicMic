@@ -16,6 +16,7 @@ export default function SongDetailsScreen({ route, navigation }) {
     const [allTags, setAllTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
     const [lyricsExpanded, setLyricsExpanded] = useState(false);
+    const [metadataExpanded, setMetadataExpanded] = useState(false);
 
     // Audio Player State
     const [sound, setSound] = useState(null);
@@ -299,25 +300,70 @@ export default function SongDetailsScreen({ route, navigation }) {
                 )}
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Metadata</Text>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Status:</Text>
-                        <Text style={styles.value}>{song.status}</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Metadata</Text>
+                        <TouchableOpacity onPress={() => setMetadataExpanded(!metadataExpanded)}>
+                            <Ionicons
+                                name={metadataExpanded ? "chevron-up" : "chevron-down"}
+                                size={24}
+                                color={theme.colors.textSecondary}
+                            />
+                        </TouchableOpacity>
                     </View>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Sing Count:</Text>
-                        <Text style={styles.value}>{song.sing_count}</Text>
-                    </View>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Added:</Text>
-                        <Text style={styles.value}>{new Date(song.created_at).toLocaleDateString()}</Text>
-                    </View>
-                    <View style={styles.row}>
-                        <Text style={styles.label}>Preview URL:</Text>
-                        <Text style={styles.value} numberOfLines={1}>
-                            {song.audio_sample_url || 'Not available'}
-                        </Text>
-                    </View>
+                    {metadataExpanded && (
+                        <>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>ID:</Text>
+                                <Text style={styles.value}>{song.id}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Status:</Text>
+                                <Text style={styles.value}>{song.status}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Category:</Text>
+                                <Text style={styles.value}>{song.category || 'repertoire'}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>My Rating:</Text>
+                                <Text style={styles.value}>{song.my_rating}/5</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Sing Count:</Text>
+                                <Text style={styles.value}>{song.sing_count}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Last Sung:</Text>
+                                <Text style={styles.value}>
+                                    {song.last_sung_date ? new Date(song.last_sung_date).toLocaleDateString() : 'Never'}
+                                </Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Created:</Text>
+                                <Text style={styles.value}>{new Date(song.created_at).toLocaleDateString()}</Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Updated:</Text>
+                                <Text style={styles.value}>{new Date(song.updated_at).toLocaleDateString()}</Text>
+                            </View>
+                            {song.album_cover_url && (
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Album Cover:</Text>
+                                    <Text style={styles.value} numberOfLines={1}>
+                                        {song.album_cover_url}
+                                    </Text>
+                                </View>
+                            )}
+                            {song.audio_sample_url && (
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Preview URL:</Text>
+                                    <Text style={styles.value} numberOfLines={1}>
+                                        {song.audio_sample_url}
+                                    </Text>
+                                </View>
+                            )}
+                        </>
+                    )}
                 </View>
 
                 <View style={styles.actions}>
