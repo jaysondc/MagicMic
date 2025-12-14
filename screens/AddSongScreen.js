@@ -9,10 +9,11 @@ import { searchItunes } from '../lib/itunes';
 import { usePreview } from '../context/PreviewContext';
 
 import { useToast } from '../context/ToastContext';
+import PreviewBottomSheet from '../components/PreviewBottomSheet';
 
 export default function AddSongScreen({ navigation }) {
     const { showToast } = useToast();
-    const { playPreview, stopPreview, currentUri, isPlaying } = usePreview();
+    const { playPreview, stopPreview, currentUri, isPlaying, isLoading } = usePreview();
 
     useFocusEffect(
         useCallback(() => {
@@ -71,9 +72,18 @@ export default function AddSongScreen({ navigation }) {
         }
     };
 
+    const [previewSheetVisible, setPreviewSheetVisible] = useState(false);
+    const [previewSong, setPreviewSong] = useState(null);
+
+    const handlePreview = (item) => {
+        setPreviewSong(item);
+        setPreviewSheetVisible(true);
+    };
+
     const renderItem = ({ item }) => {
         const isCurrent = currentUri === item.previewUrl;
         const isThisPlaying = isCurrent && isPlaying;
+        const isThisLoading = isCurrent && isLoading;
 
         return (
             <View style={styles.item}>
@@ -83,26 +93,35 @@ export default function AddSongScreen({ navigation }) {
                 >
                     <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
                     <View style={styles.playOverlay}>
-                        <Ionicons
-                            name={isThisPlaying ? "pause" : "play"}
-                            size={20}
-                            color="#fff"
-                        />
+                        {isThisLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Ionicons
+                                name={isThisPlaying ? "pause" : "play"}
+                                size={20}
+                                color="#fff"
+                            />
+                        )}
                     </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.info}
-                    onPress={() => handleAddSong(item)}
+                    onPress={() => handlePreview(item)}
                 >
                     <Text style={styles.title}>{item.trackName}</Text>
                     <Text style={styles.artist}>{item.artistName}</Text>
                     <Text style={styles.album}>{item.collectionName}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => handleAddSong(item)}>
-                    <Text style={styles.addText}>+</Text>
-                </TouchableOpacity>
+                <View style={styles.actions}>
+                    <TouchableOpacity onPress={() => handlePreview(item)} style={styles.actionButton}>
+                        <Ionicons name="document-text-outline" size={22} color={theme.colors.textSecondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleAddSong(item)} style={styles.actionButton}>
+                        <Ionicons name="add-circle" size={28} color={theme.colors.secondary} />
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     };
@@ -134,6 +153,12 @@ export default function AddSongScreen({ navigation }) {
                         <Text style={styles.emptyText}>No results found.</Text>
                     ) : null
                 }
+            />
+
+            <PreviewBottomSheet
+                isVisible={previewSheetVisible}
+                onClose={() => setPreviewSheetVisible(false)}
+                song={previewSong}
             />
         </SafeAreaView>
     );
@@ -217,11 +242,13 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontStyle: 'italic',
     },
-    addText: {
-        color: theme.colors.secondary,
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginLeft: theme.spacing.m,
+    actions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionButton: {
+        padding: 8,
+        marginLeft: 4,
     },
     emptyText: {
         color: theme.colors.textSecondary,
