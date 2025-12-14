@@ -1,14 +1,88 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+
+import React, { useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
+import { usePreview } from '../context/PreviewContext';
+import { updateSong } from '../lib/database';
+import { findPreviewUrl } from '../lib/itunes';
 
-const SongList = ({ songs, onSongPress }) => {
-    const insets = useSafeAreaInsets();
+const SongListItem = ({ item, onSongPress, playPreview, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [hasError, setHasError] = useState(false);
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.item} onPress={() => onSongPress && onSongPress(item)}>
-            <View style={styles.info}>
+    const isCurrent = currentUri === item.audio_sample_url;
+    const isThisPlaying = isCurrent && isPlaying;
+
+    const handlePlayPress = async () => {
+        if (hasError) {
+            // Retry logic
+            setHasError(false);
+        }
+
+        if (item.audio_sample_url) {
+            playPreview(item.audio_sample_url);
+        } else {
+            // Fetch preview
+            setIsLoading(true);
+            try {
+                const url = await findPreviewUrl(item.title, item.artist);
+                if (url) {
+                    // Update DB
+                    updateSong(item.id, { audio_sample_url: url });
+                    // Notify parent to update list (optional, or just play)
+                    if (onPreviewUrlUpdate) onPreviewUrlUpdate(item.id, url);
+
+                    // Immediate play
+                    playPreview(url);
+                } else {
+                    setHasError(true);
+                    // maybe show a toast?
+                }
+            } catch (e) {
+                console.log('Error fetching preview:', e);
+                setHasError(true);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    return (
+        <View style={styles.itemContainer}>
+            <TouchableOpacity
+                style={styles.artworkContainer}
+                onPress={handlePlayPress}
+                activeOpacity={0.8}
+            >
+                {item.album_cover_url ? (
+                    <Image source={{ uri: item.album_cover_url }} style={styles.artwork} />
+                ) : (
+                    <View style={[styles.artwork, styles.placeholderArtwork]}>
+                        <Ionicons name="musical-note" size={24} color={theme.colors.textSecondary} />
+                    </View>
+                )}
+
+                <View style={styles.playOverlay}>
+                    {isLoading ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : hasError ? (
+                        <Ionicons name="alert-circle" size={24} color={theme.colors.error} />
+                    ) : (
+                        <Ionicons
+                            name={isThisPlaying ? "pause" : "play"}
+                            size={20}
+                            color="#fff"
+                        />
+                    )}
+                </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.info}
+                onPress={() => onSongPress && onSongPress(item)}
+            >
                 <Text style={styles.title}>{item.title}</Text>
                 <Text style={styles.artist}>
                     {item.artist}
@@ -24,9 +98,41 @@ const SongList = ({ songs, onSongPress }) => {
                         ))}
                     </View>
                 )}
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </View>
     );
+};
+
+const SongList = ({ songs, onSongPress }) => {
+    const insets = useSafeAreaInsets();
+    const { playPreview, currentUri, isPlaying } = usePreview();
+
+    // Local override for songs that just got a URL fetched.
+    // This allows immediate feedback without waiting for parent refresh.
+    // Map of songId -> url
+    const [localUrls, setLocalUrls] = useState({});
+
+    const handlePreviewUrlUpdate = (id, url) => {
+        setLocalUrls(prev => ({ ...prev, [id]: url }));
+    };
+
+    const renderItem = ({ item }) => {
+        // Merge local update if exists
+        const displayItem = localUrls[item.id]
+            ? { ...item, audio_sample_url: localUrls[item.id] }
+            : item;
+
+        return (
+            <SongListItem
+                item={displayItem}
+                onSongPress={onSongPress}
+                playPreview={playPreview}
+                currentUri={currentUri}
+                isPlaying={isPlaying}
+                onPreviewUrlUpdate={handlePreviewUrlUpdate}
+            />
+        );
+    };
 
     return (
         <FlatList
@@ -44,7 +150,9 @@ const SongList = ({ songs, onSongPress }) => {
 };
 
 const styles = StyleSheet.create({
-    item: {
+    itemContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: theme.spacing.m,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border,
@@ -52,6 +160,32 @@ const styles = StyleSheet.create({
         marginHorizontal: theme.spacing.m,
         marginTop: theme.spacing.s,
         borderRadius: theme.borderRadius.m,
+    },
+    artworkContainer: {
+        position: 'relative',
+        marginRight: theme.spacing.m,
+    },
+    artwork: {
+        width: 50,
+        height: 50,
+        borderRadius: theme.borderRadius.s,
+        backgroundColor: theme.colors.background, // fallback
+    },
+    placeholderArtwork: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: theme.colors.border,
+    },
+    playOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: theme.borderRadius.s,
     },
     info: {
         flex: 1,

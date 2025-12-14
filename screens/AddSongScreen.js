@@ -1,13 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
-import { addSong, updateSong } from '../lib/database';
+import { addSong } from '../lib/database';
+import { searchItunes } from '../lib/itunes';
+import { usePreview } from '../context/PreviewContext';
 
 import { useToast } from '../context/ToastContext';
 
 export default function AddSongScreen({ navigation }) {
     const { showToast } = useToast();
+    const { playPreview, stopPreview, currentUri, isPlaying } = usePreview();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                stopPreview();
+            };
+        }, [])
+    );
+
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -17,7 +31,7 @@ export default function AddSongScreen({ navigation }) {
     useEffect(() => {
         const timer = setTimeout(() => {
             if (query.length > 2) {
-                searchItunes(query);
+                handleSearch(query);
             } else {
                 setResults([]);
             }
@@ -26,13 +40,12 @@ export default function AddSongScreen({ navigation }) {
         return () => clearTimeout(timer);
     }, [query]);
 
-    const searchItunes = async (term) => {
+    const handleSearch = async (term) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=song&limit=20`);
-            const data = await response.json();
-            setResults(data.results);
+            const data = await searchItunes(term);
+            setResults(data);
         } catch (err) {
             setError('Failed to fetch songs. Please try again.');
         } finally {
@@ -58,17 +71,41 @@ export default function AddSongScreen({ navigation }) {
         }
     };
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity style={styles.item} onPress={() => handleAddSong(item)}>
-            <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
-            <View style={styles.info}>
-                <Text style={styles.title}>{item.trackName}</Text>
-                <Text style={styles.artist}>{item.artistName}</Text>
-                <Text style={styles.album}>{item.collectionName}</Text>
+    const renderItem = ({ item }) => {
+        const isCurrent = currentUri === item.previewUrl;
+        const isThisPlaying = isCurrent && isPlaying;
+
+        return (
+            <View style={styles.item}>
+                <TouchableOpacity
+                    onPress={() => playPreview(item.previewUrl)}
+                    style={styles.artworkContainer}
+                >
+                    <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
+                    <View style={styles.playOverlay}>
+                        <Ionicons
+                            name={isThisPlaying ? "pause" : "play"}
+                            size={20}
+                            color="#fff"
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.info}
+                    onPress={() => handleAddSong(item)}
+                >
+                    <Text style={styles.title}>{item.trackName}</Text>
+                    <Text style={styles.artist}>{item.artistName}</Text>
+                    <Text style={styles.album}>{item.collectionName}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => handleAddSong(item)}>
+                    <Text style={styles.addText}>+</Text>
+                </TouchableOpacity>
             </View>
-            <Text style={styles.addText}>+</Text>
-        </TouchableOpacity>
-    );
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -143,11 +180,25 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: theme.colors.border,
     },
+    artworkContainer: {
+        position: 'relative',
+        marginRight: theme.spacing.m,
+    },
     artwork: {
         width: 50,
         height: 50,
         borderRadius: theme.borderRadius.s,
-        marginRight: theme.spacing.m,
+    },
+    playOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: theme.borderRadius.s,
     },
     info: {
         flex: 1,

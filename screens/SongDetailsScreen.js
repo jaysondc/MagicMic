@@ -1,51 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Button, Alert, TouchableOpacity } from 'react-native';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Audio } from 'expo-av';
+import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+
 import TagFilter from '../components/TagFilter';
+import RatingWidget from '../components/RatingWidget';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
+import { usePreview } from '../context/PreviewContext';
 import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, addSong, db } from '../lib/database';
-import RatingWidget from '../components/RatingWidget';
+import { findSongMetadata } from '../lib/itunes';
 
 export default function SongDetailsScreen({ route, navigation }) {
     const { songId } = route.params;
     const { showToast } = useToast();
+    const { playPreview, stopPreview, currentUri, isPlaying, duration, position } = usePreview();
+
     const [song, setSong] = useState(null);
     const [allTags, setAllTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
     const [lyricsExpanded, setLyricsExpanded] = useState(false);
     const [metadataExpanded, setMetadataExpanded] = useState(false);
+    const [loadingMetadata, setLoadingMetadata] = useState(false);
 
-    // Audio Player State
-    const [sound, setSound] = useState(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [duration, setDuration] = useState(0);
-    const [position, setPosition] = useState(0);
+    // Stop preview when leaving the screen
+    useFocusEffect(
+        useCallback(() => {
+            return () => {
+                stopPreview();
+            };
+        }, [])
+    );
 
     useEffect(() => {
         loadSongData();
         loadTags();
-
-        // Cleanup sound on unmount
-        return () => {
-            if (sound) {
-                sound.unloadAsync();
-            }
-        };
     }, []);
-
-    // Cleanup sound when leaving the screen or changing songs
-    useEffect(() => {
-        return () => {
-            if (sound) {
-                sound.unloadAsync();
-            }
-        };
-    }, [sound]);
 
     const loadSongData = () => {
         const songs = getSongs();
@@ -58,6 +52,11 @@ export default function SongDetailsScreen({ route, navigation }) {
             if (!foundSong.lyrics) {
                 fetchLyrics(foundSong);
             }
+
+            // Fetch metadata if missing (Art or Audio)
+            if (!foundSong.audio_sample_url || !foundSong.album_cover_url) {
+                fetchMetadata(foundSong);
+            }
         }
     };
 
@@ -67,8 +66,6 @@ export default function SongDetailsScreen({ route, navigation }) {
 
     const fetchLyrics = async (song) => {
         if (!song || !song.title || !song.artist) return;
-
-        console.log('Fetching lyrics for:', song.title, song.artist);
         try {
             // Build URL with duration only if available
             let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(song.artist)}&track_name=${encodeURIComponent(song.title)}`;
@@ -82,10 +79,7 @@ export default function SongDetailsScreen({ route, navigation }) {
             if (response.ok) {
                 const data = await response.json();
                 if (data.plainLyrics) {
-                    // Update database
                     updateSong(song.id, { lyrics: data.plainLyrics });
-
-                    // Update local state
                     setSong(prev => ({ ...prev, lyrics: data.plainLyrics }));
                 }
             }
@@ -93,6 +87,37 @@ export default function SongDetailsScreen({ route, navigation }) {
             console.log('Error fetching lyrics:', error);
         }
     };
+
+    const fetchMetadata = async (song) => {
+        if (!song || !song.title || !song.artist) return;
+
+        setLoadingMetadata(true);
+        try {
+            const metadata = await findSongMetadata(song.title, song.artist);
+
+            if (metadata) {
+                const updates = {};
+
+                // Only update if missing
+                if (!song.audio_sample_url && metadata.previewUrl) {
+                    updates.audio_sample_url = metadata.previewUrl;
+                }
+                if (!song.album_cover_url && metadata.artworkUrl) {
+                    updates.album_cover_url = metadata.artworkUrl;
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    updateSong(song.id, updates);
+                    setSong(prev => ({ ...prev, ...updates }));
+                    console.log('Metadata fetched:', updates);
+                }
+            }
+        } catch (error) {
+            console.log('Error fetching metadata:', error);
+        } finally {
+            setLoadingMetadata(false);
+        }
+    }
 
     const handleRatingChange = (newRating) => {
         setSong(prev => ({ ...prev, my_rating: newRating }));
@@ -117,29 +142,21 @@ export default function SongDetailsScreen({ route, navigation }) {
     });
 
     const handleMarkAsSung = () => {
-        // Haptic feedback could be added here if expo-haptics was available
-
-        // Animation
         scale.value = withSequence(
             withTiming(0.9, { duration: 100 }),
             withSpring(1, { damping: 50, stiffness: 500 })
         );
 
-        // Show "+1" floating text
         successOpacity.value = withSequence(
             withTiming(1, { duration: 200 }),
             withTiming(0, { duration: 800, delay: 500 }) // Fade out after delay
         );
 
-        // Update Data
         const newCount = (song.sing_count || 0) + 1;
         const now = Date.now();
 
         updateSong(songId, { sing_count: newCount, last_sung_date: now });
         setSong(prev => ({ ...prev, sing_count: newCount, last_sung_date: now }));
-
-        // Optional: Trigger a toast for backup feedback
-        // showToast({ message: 'Marked as sung!', type: 'success' });
     };
 
     const handleToggleTag = (tagId) => {
@@ -158,57 +175,18 @@ export default function SongDetailsScreen({ route, navigation }) {
     };
 
     const handlePlayPreview = async () => {
-        if (!song?.audio_sample_url) return;
-
-        try {
-            if (sound) {
-                if (isPlaying) {
-                    await sound.pauseAsync();
-                    setIsPlaying(false);
-                } else {
-                    // If the song finished, replay from start
-                    if (position >= duration && duration > 0) {
-                        await sound.replayAsync();
-                    } else {
-                        await sound.playAsync();
-                    }
-                    setIsPlaying(true);
-                }
-            } else {
-                console.log('Loading Sound');
-                const { sound: newSound } = await Audio.Sound.createAsync(
-                    { uri: song.audio_sample_url },
-                    {
-                        shouldPlay: true,
-                        progressUpdateIntervalMillis: 50 // Update every 50ms for smooth animation
-                    },
-                    onPlaybackStatusUpdate
-                );
-                setSound(newSound);
-                setIsPlaying(true);
-            }
-        } catch (error) {
-            console.log('Error playing sound', error);
-            showToast({ message: 'Could not play song preview', type: 'error' });
-        }
-    };
-
-    const onPlaybackStatusUpdate = (status) => {
-        if (status.isLoaded) {
-            setDuration(status.durationMillis);
-            setPosition(status.positionMillis);
-            setIsPlaying(status.isPlaying);
-
-            if (status.didJustFinish) {
-                setIsPlaying(false);
-                setPosition(status.durationMillis); // Show full circle when done
-                // Don't auto-reset position here, let the play button handle replay
-            }
+        if (song?.audio_sample_url) {
+            playPreview(song.audio_sample_url);
+        } else if (!loadingMetadata) {
+            // Trigger fetch if clicked and not already loading
+            await fetchMetadata(song);
+            // If we successfully got it, play it (need to rely on ref or state update, but song is state)
+            // Simpler: just user taps again, or we rely on the effect.
+            // But ideally we want one-tap. The effect runs on mount, so it should be loading already.
         }
     };
 
     const handleDelete = () => {
-        // Prepare for restore with ALL fields
         const songToRestore = { ...song, tags: selectedTags };
 
         deleteSong(songId);
@@ -221,30 +199,15 @@ export default function SongDetailsScreen({ route, navigation }) {
             duration: 5000,
             onAction: () => {
                 try {
-                    // Restore song with ALL fields
                     const newId = addSong(songToRestore.title, songToRestore.artist, {
-                        album_cover_url: songToRestore.album_cover_url,
-                        audio_sample_url: songToRestore.audio_sample_url,
-                        duration_ms: songToRestore.duration_ms,
-                        lyrics: songToRestore.lyrics,
-                        lyrics_preview: songToRestore.lyrics_preview,
-                        status: songToRestore.status,
-                        my_rating: songToRestore.my_rating,
-                        sing_count: songToRestore.sing_count,
-                        last_sung_date: songToRestore.last_sung_date,
-                        category: songToRestore.category,
-                        created_at: songToRestore.created_at,
-                        updated_at: songToRestore.updated_at
+                        ...songToRestore
                     });
 
-                    // Restore tags
                     if (songToRestore.tags && songToRestore.tags.length > 0) {
                         songToRestore.tags.forEach(tagId => linkTagToSong(newId, tagId));
                     }
 
-                    // Trigger HomeScreen refresh
                     navigation.navigate('Home', { refresh: Date.now() });
-
                     showToast({ message: 'Song restored!', type: 'success' });
                 } catch (e) {
                     showToast({ message: 'Failed to restore song.', type: 'error' });
@@ -262,11 +225,16 @@ export default function SongDetailsScreen({ route, navigation }) {
     }
 
     // Circular Progress UI
+    const isCurrent = currentUri === song.audio_sample_url;
+    const isThisPlaying = isCurrent && isPlaying;
+    const currentPosition = isCurrent ? position : 0;
+    const currentDuration = isCurrent ? duration : 0;
+
     const size = 50;
     const strokeWidth = 3;
     const radius = (size - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
-    const progress = duration > 0 ? position / duration : 0;
+    const progress = (isCurrent && currentDuration > 0) ? currentPosition / currentDuration : 0;
     const strokeDashoffset = circumference - progress * circumference;
 
     return (
@@ -275,6 +243,20 @@ export default function SongDetailsScreen({ route, navigation }) {
 
                 {/* Header Section with Preview Player */}
                 <View style={styles.headerContainer}>
+                    <View style={styles.artworkWrapper}>
+                        {song.album_cover_url ? (
+                            <Image source={{ uri: song.album_cover_url }} style={styles.headerArtwork} />
+                        ) : (
+                            <View style={[styles.headerArtwork, styles.artworkPlaceholder]}>
+                                {loadingMetadata ? (
+                                    <ActivityIndicator color={theme.colors.textSecondary} />
+                                ) : (
+                                    <Ionicons name="musical-note" size={40} color={theme.colors.textSecondary} />
+                                )}
+                            </View>
+                        )}
+                    </View>
+
                     <View style={styles.titleContainer}>
                         <Text style={styles.title}>{song.title}</Text>
                         <Text style={styles.artist}>
@@ -283,42 +265,49 @@ export default function SongDetailsScreen({ route, navigation }) {
                         </Text>
                     </View>
 
-                    {song.audio_sample_url && (
-                        <TouchableOpacity onPress={handlePlayPreview} style={styles.playerButton}>
-                            <Svg width={size} height={size} style={styles.progressCircle}>
-                                {/* Background Circle (Optional, for visual track) */}
-                                <Circle
-                                    stroke={theme.colors.border}
-                                    fill="none"
-                                    cx={size / 2}
-                                    cy={size / 2}
-                                    r={radius}
-                                    strokeWidth={strokeWidth}
-                                />
-                                {/* Progress Circle */}
-                                <Circle
-                                    stroke={theme.colors.primary}
-                                    fill="transparent"
-                                    cx={size / 2}
-                                    cy={size / 2}
-                                    r={radius}
-                                    strokeWidth={strokeWidth}
-                                    strokeDasharray={`${circumference} ${circumference}`}
-                                    strokeDashoffset={strokeDashoffset}
-                                    strokeLinecap="round"
-                                    rotation="-90"
-                                    origin={`${size / 2}, ${size / 2}`}
-                                />
-                            </Svg>
-                            <View style={styles.iconContainer}>
-                                <Ionicons
-                                    name={isPlaying ? "pause" : "play"}
-                                    size={24}
-                                    color={theme.colors.primary}
-                                />
-                            </View>
-                        </TouchableOpacity>
-                    )}
+                    <TouchableOpacity
+                        onPress={handlePlayPreview}
+                        style={styles.playerButton}
+                        disabled={loadingMetadata && !song.audio_sample_url}
+                    >
+                        {loadingMetadata && !song.audio_sample_url ? (
+                            <ActivityIndicator size="small" color={theme.colors.primary} />
+                        ) : (
+                            // Always show play button structure, even if no URL yet (it will render play icon)
+                            <>
+                                <Svg width={size} height={size} style={styles.progressCircle}>
+                                    <Circle
+                                        stroke={theme.colors.border}
+                                        fill="none"
+                                        cx={size / 2}
+                                        cy={size / 2}
+                                        r={radius}
+                                        strokeWidth={strokeWidth}
+                                    />
+                                    <Circle
+                                        stroke={theme.colors.primary}
+                                        fill="transparent"
+                                        cx={size / 2}
+                                        cy={size / 2}
+                                        r={radius}
+                                        strokeWidth={strokeWidth}
+                                        strokeDasharray={`${circumference} ${circumference}`}
+                                        strokeDashoffset={strokeDashoffset}
+                                        strokeLinecap="round"
+                                        rotation="-90"
+                                        origin={`${size / 2}, ${size / 2}`}
+                                    />
+                                </Svg>
+                                <View style={styles.iconContainer}>
+                                    <Ionicons
+                                        name={isThisPlaying ? "pause" : "play"}
+                                        size={24}
+                                        color={theme.colors.primary}
+                                    />
+                                </View>
+                            </>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.section}>
@@ -331,13 +320,11 @@ export default function SongDetailsScreen({ route, navigation }) {
                     />
                 </View>
 
-                {/* Rating Widget */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Rating</Text>
                     <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
                 </View>
 
-                {/* Performance / Stats Section */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Performance</Text>
                     <View style={styles.statsContainer}>
@@ -368,7 +355,6 @@ export default function SongDetailsScreen({ route, navigation }) {
                             </TouchableOpacity>
                         </Animated.View>
 
-                        {/* Floating +1 Feedback */}
                         <Animated.View style={[styles.successFeedback, successStyle]}>
                             <Text style={styles.successText}>+1</Text>
                         </Animated.View>
@@ -440,22 +426,18 @@ export default function SongDetailsScreen({ route, navigation }) {
                                 <Text style={styles.label}>Updated:</Text>
                                 <Text style={styles.value}>{new Date(song.updated_at).toLocaleDateString()}</Text>
                             </View>
-                            {song.album_cover_url && (
-                                <View style={styles.row}>
-                                    <Text style={styles.label}>Album Cover:</Text>
-                                    <Text style={styles.value} numberOfLines={1}>
-                                        {song.album_cover_url}
-                                    </Text>
-                                </View>
-                            )}
-                            {song.audio_sample_url && (
-                                <View style={styles.row}>
-                                    <Text style={styles.label}>Preview URL:</Text>
-                                    <Text style={styles.value} numberOfLines={1}>
-                                        {song.audio_sample_url}
-                                    </Text>
-                                </View>
-                            )}
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Album Cover:</Text>
+                                <Text style={styles.value} numberOfLines={1}>
+                                    {song.album_cover_url || 'None'}
+                                </Text>
+                            </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Preview URL:</Text>
+                                <Text style={styles.value} numberOfLines={1}>
+                                    {song.audio_sample_url || 'None'}
+                                </Text>
+                            </View>
                         </>
                     )}
                 </View>
@@ -483,19 +465,44 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center', // Changed to center for better alignment
         marginBottom: theme.spacing.l,
+    },
+    artworkWrapper: {
+        marginRight: theme.spacing.m,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    headerArtwork: {
+        width: 80,
+        height: 80,
+        borderRadius: theme.borderRadius.m,
+    },
+    artworkPlaceholder: {
+        backgroundColor: theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     },
     titleContainer: {
         flex: 1,
-        marginRight: theme.spacing.m,
+        // marginRight: theme.spacing.m, // Removed to avoid large gap if short text, handled by flex
+        justifyContent: 'center',
+        paddingRight: theme.spacing.s,
     },
     title: {
         ...theme.textVariants.header,
-        marginBottom: theme.spacing.s,
+        marginBottom: 4,
+        fontSize: 20,
+        lineHeight: 24,
     },
     artist: {
         ...theme.textVariants.subheader,
+        fontSize: 16,
     },
     playerButton: {
         width: 50,
@@ -583,7 +590,7 @@ const styles = StyleSheet.create({
     },
     actionContainer: {
         alignItems: 'center',
-        position: 'relative', // For absolute positioning of feedback
+        position: 'relative',
         zIndex: 1,
     },
     markSungButtonContainer: {
@@ -630,7 +637,7 @@ const styles = StyleSheet.create({
         borderRadius: theme.borderRadius.m,
         borderWidth: 1,
         borderColor: theme.colors.error,
-        backgroundColor: 'transparent', // Ghost style
+        backgroundColor: 'transparent',
         opacity: 0.8,
     },
     deleteButtonText: {

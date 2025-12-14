@@ -18,6 +18,7 @@ TODO List for KaraokeVault
 - [ ] Download lyrics when adding a song
 - [X] Create toast instead of dialog
 - [ ] Delete Tags
+- [ ] Song lyric preview bottomsheet in song search
 
 # Bugs
 - [X] Song list doesn't update when a song is added

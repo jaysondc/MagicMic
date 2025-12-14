@@ -9,6 +9,7 @@ import AddSongScreen from './screens/AddSongScreen';
 import SongDetailsScreen from './screens/SongDetailsScreen';
 import { theme } from './lib/theme';
 import { ToastProvider } from './context/ToastContext';
+import { PreviewProvider } from './context/PreviewContext';
 
 const Stack = createStackNavigator();
 
@@ -17,38 +18,40 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ToastProvider>
-          <NavigationContainer>
-            <Stack.Navigator
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: theme.colors.surface,
-                  borderBottomWidth: 1,
-                  borderBottomColor: theme.colors.border,
-                },
-                headerTintColor: theme.colors.text,
-                headerTitleStyle: {
-                  fontWeight: 'bold',
-                },
-                cardStyle: { backgroundColor: theme.colors.background },
-              }}
-            >
-              <Stack.Screen
-                name="Home"
-                component={HomeScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="AddSong"
-                component={AddSongScreen}
-                options={{ title: 'Add Song' }}
-              />
-              <Stack.Screen
-                name="SongDetails"
-                component={SongDetailsScreen}
-                options={{ title: 'Song Details' }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <PreviewProvider>
+            <NavigationContainer>
+              <Stack.Navigator
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: theme.colors.surface,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.colors.border,
+                  },
+                  headerTintColor: theme.colors.text,
+                  headerTitleStyle: {
+                    fontWeight: 'bold',
+                  },
+                  cardStyle: { backgroundColor: theme.colors.background },
+                }}
+              >
+                <Stack.Screen
+                  name="Home"
+                  component={HomeScreen}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="AddSong"
+                  component={AddSongScreen}
+                  options={{ title: 'Add Song' }}
+                />
+                <Stack.Screen
+                  name="SongDetails"
+                  component={SongDetailsScreen}
+                  options={{ title: 'Song Details' }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </PreviewProvider>
         </ToastProvider>
         <StatusBar style="light" />
       </SafeAreaProvider>

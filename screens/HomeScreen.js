@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, Button, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useFocusEffect } from '@react-navigation/native';
+import { usePreview } from '../context/PreviewContext';
 import SongList from '../components/SongList';
 import TagFilter from '../components/TagFilter';
 import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase, runMigrations } from '../lib/database';
@@ -14,6 +16,14 @@ import SortBottomSheet from '../components/SortBottomSheet';
 
 export default function HomeScreen({ navigation, route }) {
     const { showToast } = useToast();
+    const { stopPreview } = usePreview();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => stopPreview();
+        }, [])
+    );
+
     const [searchQuery, setSearchQuery] = useState('');
     const [songs, setSongs] = useState([]);
     const [tags, setTags] = useState([]);
