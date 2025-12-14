@@ -4,7 +4,7 @@ import { Text, View, SafeAreaView, StyleSheet } from 'react-native';
 export default function App() {
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.title}>KaraokeVault Test</Text>
+            <Text style={styles.title}>Magic Mic Test</Text>
             <Text>If you can see this, the basic app works!</Text>
         </SafeAreaView>
     );

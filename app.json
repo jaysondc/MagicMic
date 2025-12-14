@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "KaraokeVault",
-    "slug": "KaraokeVault",
+    "name": "MagicMic",
+    "slug": "magic-mic",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#15112B"
     },
     "ios": {
       "supportsTablet": true
@@ -18,10 +18,10 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#15112B"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.jaysondc.KaraokeVault"
+      "package": "com.jaysondc.magicmic"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -37,7 +37,9 @@
             "useSQLCipher": false
           },
           "ios": {
-            "customBuildFlags": ["-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"]
+            "customBuildFlags": [
+              "-DSQLITE_ENABLE_DBSTAT_VTAB=1 -DSQLITE_ENABLE_SNAPSHOT=1"
+            ]
           }
         }
       ]

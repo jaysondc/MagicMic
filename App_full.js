@@ -20,7 +20,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>KaraokeVault</Text>
+        <Text style={styles.title}>Magic Mic</Text>
         <Button title="Sync" onPress={handleSync} />
       </View>
       <View style={styles.searchContainer}>

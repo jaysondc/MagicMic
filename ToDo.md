@@ -1,14 +1,13 @@
-TODO List for KaraokeVault
+TODO List for Magic Mic
 
 # App
 - [ ] App icon
-- [ ]  
 
 # Features
-- [ ] Song Album Art
-    - [ ] Song List
-    - [ ] Song Details
-- [ ] Star Ratings
+- [X] Song Album Art
+    - [X] Song List
+    - [X] Song Details
+- [X] Star Ratings
 - [X] Song Lyrics
 - [X] Song Preview
 - [ ] Auto-populate tags
@@ -18,20 +17,19 @@ TODO List for KaraokeVault
 - [ ] Download lyrics when adding a song
 - [X] Create toast instead of dialog
 - [ ] Delete Tags
-- [ ] Song lyric preview bottomsheet in song search
+- [X] Song lyric preview bottomsheet in song search
 
 # Bugs
 - [X] Song list doesn't update when a song is added
-- [ ] Tag filtering is OR instead of AND
 
 # Polish
 - [ ] Remove Repertoire Tag
 - [X] Change Add Song button to FAB
 - [ ] Fix dim hold state
-- [ ] Custom Dialog Style
+- [X] Custom Dialog Style
 - [ ] Prevent Duplicate Entries
-- [ ] Delete button style
-- [ ] Move metadata to bottom
+- [X] Delete button style
+- [X] Move metadata to bottom
 - [ ] Loading state for lyrics
 - [ ] Polish loading state for song search
 

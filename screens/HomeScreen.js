@@ -138,7 +138,7 @@ export default function HomeScreen({ navigation, route }) {
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
-                <Text style={styles.title}>KaraokeVault</Text>
+                <Text style={styles.title}>Magic Mic</Text>
                 <View style={styles.headerButtons}>
                     <Button title="Seed" onPress={handleSeed} color={theme.colors.secondary} />
                 </View>
