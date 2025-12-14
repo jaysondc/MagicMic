@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
@@ -12,6 +12,7 @@ import { useToast } from '../context/ToastContext';
 import PreviewBottomSheet from '../components/PreviewBottomSheet';
 
 export default function AddSongScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const { playPreview, stopPreview, currentUri, isPlaying, isLoading } = usePreview();
 
@@ -59,13 +60,18 @@ export default function AddSongScreen({ navigation }) {
             // Get higher quality artwork by replacing 100x100 with 600x600
             const highResArtwork = item.artworkUrl100?.replace('100x100bb', '600x600bb');
 
-            addSong(item.trackName, item.artistName, {
+            const newSongId = addSong(item.trackName, item.artistName, {
                 album_cover_url: highResArtwork || item.artworkUrl100,
                 audio_sample_url: item.previewUrl,
                 duration_ms: item.trackTimeMillis
             });
 
-            showToast({ message: `Added "${item.trackName}"`, type: 'success' });
+            showToast({
+                message: `Added "${item.trackName}"`,
+                type: 'success',
+                actionLabel: 'Edit',
+                onAction: () => navigation.navigate('SongDetails', { songId: newSongId })
+            });
             navigation.goBack();
         } catch (err) {
             showToast({ message: 'Error adding song', type: 'error' });
@@ -127,7 +133,7 @@ export default function AddSongScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
+        <SafeAreaView style={styles.container} edges={['left', 'right']}>
             <View style={styles.searchContainer}>
                 <TextInput
                     style={styles.searchInput}
@@ -147,7 +153,7 @@ export default function AddSongScreen({ navigation }) {
                 data={results}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.trackId.toString()}
-                contentContainerStyle={styles.list}
+                contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + theme.spacing.xl }]}
                 ListEmptyComponent={
                     !loading && query.length > 2 ? (
                         <Text style={styles.emptyText}>No results found.</Text>
@@ -159,6 +165,7 @@ export default function AddSongScreen({ navigation }) {
                 isVisible={previewSheetVisible}
                 onClose={() => setPreviewSheetVisible(false)}
                 song={previewSong}
+                safeBottomPadding={insets.bottom}
             />
         </SafeAreaView>
     );

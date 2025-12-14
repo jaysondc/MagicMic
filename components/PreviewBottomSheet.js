@@ -17,7 +17,7 @@ const TOP_OFFSET = SCREEN_HEIGHT * 0.1; // Max height (90%)
 const INITIAL_OFFSET = SCREEN_HEIGHT * 0.5; // Initial height (50%)
 const CLOSED_OFFSET = SCREEN_HEIGHT;
 
-const PreviewBottomSheet = ({ isVisible, onClose, song }) => {
+const PreviewBottomSheet = ({ isVisible, onClose, song, safeBottomPadding = 0 }) => {
     const [lyrics, setLyrics] = useState(null);
     const [loading, setLoading] = useState(false);
 
@@ -118,6 +118,7 @@ const PreviewBottomSheet = ({ isVisible, onClose, song }) => {
             visible={isVisible}
             animationType="none"
             onRequestClose={() => runOnJS(onClose)()}
+            statusBarTranslucent
         >
             <GestureHandlerRootView style={styles.overlay}>
                 <Animated.View style={[styles.backdrop, backdropStyle]}>
@@ -177,7 +178,7 @@ const PreviewBottomSheet = ({ isVisible, onClose, song }) => {
                                 </View>
                             </>
                         )}
-                        <View style={{ height: 40 }} />
+                        <View style={{ height: 40 + safeBottomPadding }} />
                     </ScrollView>
                 </Animated.View>
             </GestureHandlerRootView>

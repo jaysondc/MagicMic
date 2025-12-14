@@ -5,48 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
 import { usePreview } from '../context/PreviewContext';
-import { updateSong } from '../lib/database';
-import { findPreviewUrl } from '../lib/itunes';
 
-const SongListItem = ({ item, onSongPress, playPreview, currentUri, isPlaying, onPreviewUrlUpdate }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [hasError, setHasError] = useState(false);
+const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
 
+    // Derived state
     const isCurrent = currentUri === item.audio_sample_url;
     const isThisPlaying = isCurrent && isPlaying;
+    const isLoading = loadingSongId === item.id;
 
-    const handlePlayPress = async () => {
-        if (hasError) {
-            // Retry logic
-            setHasError(false);
-        }
-
-        if (item.audio_sample_url) {
-            playPreview(item.audio_sample_url);
-        } else {
-            // Fetch preview
-            setIsLoading(true);
-            try {
-                const url = await findPreviewUrl(item.title, item.artist);
-                if (url) {
-                    // Update DB
-                    updateSong(item.id, { audio_sample_url: url });
-                    // Notify parent to update list (optional, or just play)
-                    if (onPreviewUrlUpdate) onPreviewUrlUpdate(item.id, url);
-
-                    // Immediate play
-                    playPreview(url);
-                } else {
-                    setHasError(true);
-                    // maybe show a toast?
-                }
-            } catch (e) {
-                console.log('Error fetching preview:', e);
-                setHasError(true);
-            } finally {
-                setIsLoading(false);
-            }
-        }
+    const handlePlayPress = () => {
+        playSong(item, onPreviewUrlUpdate);
     };
 
     return (
@@ -67,8 +35,6 @@ const SongListItem = ({ item, onSongPress, playPreview, currentUri, isPlaying, o
                 <View style={styles.playOverlay}>
                     {isLoading ? (
                         <ActivityIndicator size="small" color="#fff" />
-                    ) : hasError ? (
-                        <Ionicons name="alert-circle" size={24} color={theme.colors.error} />
                     ) : (
                         <Ionicons
                             name={isThisPlaying ? "pause" : "play"}
@@ -105,7 +71,7 @@ const SongListItem = ({ item, onSongPress, playPreview, currentUri, isPlaying, o
 
 const SongList = ({ songs, onSongPress }) => {
     const insets = useSafeAreaInsets();
-    const { playPreview, currentUri, isPlaying } = usePreview();
+    const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
 
     // Local override for songs that just got a URL fetched.
     // This allows immediate feedback without waiting for parent refresh.
@@ -126,7 +92,8 @@ const SongList = ({ songs, onSongPress }) => {
             <SongListItem
                 item={displayItem}
                 onSongPress={onSongPress}
-                playPreview={playPreview}
+                playSong={playSong}
+                loadingSongId={loadingSongId}
                 currentUri={currentUri}
                 isPlaying={isPlaying}
                 onPreviewUrlUpdate={handlePreviewUrlUpdate}

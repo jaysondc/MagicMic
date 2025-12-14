@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, Button, TextInput, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import { usePreview } from '../context/PreviewContext';
@@ -15,6 +15,7 @@ import SortBottomSheet from '../components/SortBottomSheet';
 
 
 export default function HomeScreen({ navigation, route }) {
+    const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const { stopPreview } = usePreview();
 
@@ -99,9 +100,13 @@ export default function HomeScreen({ navigation, route }) {
             // Toggle order
             setSortOrder(prev => prev === 'ASC' ? 'DESC' : 'ASC');
         } else {
-            // New sort, default to DESC (usually better for dates/counts)
+            // New sort, default to DESC usually, but ASC for text fields
             setSortBy(newSortBy);
-            setSortOrder('DESC');
+            if (newSortBy === 'title' || newSortBy === 'artist') {
+                setSortOrder('ASC');
+            } else {
+                setSortOrder('DESC');
+            }
         }
     };
 
@@ -115,7 +120,9 @@ export default function HomeScreen({ navigation, route }) {
             'last_sung_date': 'Sung',
             'sing_count': '# Sung',
             'my_rating': 'Rating',
-            'updated_at': 'Updated'
+            'updated_at': 'Updated',
+            'title': 'Song',
+            'artist': 'Artist'
         };
         const arrow = sortOrder === 'ASC' ? '▲' : '▼';
         return `${labels[sortBy] || 'Sort'} ${arrow}`;
@@ -163,6 +170,7 @@ export default function HomeScreen({ navigation, route }) {
                 onClose={() => setSortSheetVisible(false)}
                 currentSortBy={sortBy}
                 onSelectSort={handleSortSelect}
+                safeBottomPadding={insets.bottom}
             />
             <StatusBar style="light" />
         </SafeAreaView>

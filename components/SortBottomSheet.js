@@ -26,9 +26,11 @@ const SORT_OPTIONS = [
     { id: 'sing_count', label: 'Times Sung', icon: 'stats-chart-outline' },
     { id: 'my_rating', label: 'Rating', icon: 'star-outline' },
     { id: 'updated_at', label: 'Updated', icon: 'time-outline' },
+    { id: 'title', label: 'Song Name', icon: 'musical-note-outline' },
+    { id: 'artist', label: 'Artist Name', icon: 'person-outline' },
 ];
 
-const SortBottomSheet = ({ visible, onClose, currentSortBy, onSelectSort }) => {
+const SortBottomSheet = ({ visible, onClose, currentSortBy, onSelectSort, safeBottomPadding = 0 }) => {
     const translateY = useSharedValue(SCREEN_HEIGHT);
     const opacity = useSharedValue(0);
 
@@ -66,13 +68,13 @@ const SortBottomSheet = ({ visible, onClose, currentSortBy, onSelectSort }) => {
     if (!visible && opacity.value === 0) return null;
 
     return (
-        <Modal transparent visible={visible} onRequestClose={onClose} animationType="none">
+        <Modal transparent visible={visible} onRequestClose={onClose} animationType="none" statusBarTranslucent>
             <View style={styles.overlay}>
                 <TouchableWithoutFeedback onPress={closeSheet}>
                     <Animated.View style={[styles.backdrop, backdropStyle]} />
                 </TouchableWithoutFeedback>
 
-                <Animated.View style={[styles.sheet, sheetStyle]}>
+                <Animated.View style={[styles.sheet, sheetStyle, { paddingBottom: safeBottomPadding + theme.spacing.m }]}>
                     <View style={styles.handleContainer}>
                         <View style={styles.handle} />
                     </View>

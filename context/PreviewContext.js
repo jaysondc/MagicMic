@@ -1,6 +1,8 @@
 
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { Audio } from 'expo-av';
+import { findPreviewUrl } from '../lib/itunes';
+import { updateSong } from '../lib/database';
 
 const PreviewContext = createContext();
 
@@ -12,6 +14,8 @@ export const PreviewProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [duration, setDuration] = useState(0);
     const [position, setPosition] = useState(0);
+    const [loadingSongId, setLoadingSongId] = useState(null);
+    const loadingSongIdRef = useRef(null);
 
     const soundRef = useRef(null);
 
@@ -70,36 +74,52 @@ export const PreviewProvider = ({ children }) => {
         }
     };
 
+    const playbackGenRef = useRef(0);
+
     const playPreview = async (uri) => {
         if (!uri) return;
 
-        try {
-            setIsLoading(true);
+        const myGen = ++playbackGenRef.current;
 
+        try {
             // Case 1: Toggling the same song
             if (currentUri === uri && soundRef.current) {
                 if (isPlaying) {
                     setIsPlaying(false);
                     await fadeOut(soundRef.current);
-                    await soundRef.current.pauseAsync();
+                    if (myGen !== playbackGenRef.current) return;
+                    if (soundRef.current) await soundRef.current.pauseAsync();
                 } else {
                     setIsPlaying(true);
                     await fadeIn(soundRef.current);
                 }
-                setIsLoading(false);
                 return;
             }
 
             // Case 2: New song or first song
-            // Unload previous if exists
-            if (soundRef.current) {
+            setIsLoading(true);
+
+            // Detach and unload previous sound immediately from our tracker
+            const oldSound = soundRef.current;
+            soundRef.current = null;
+
+            if (oldSound) {
                 setIsPlaying(false);
-                await fadeOut(soundRef.current); // smooth transition
-                await soundRef.current.unloadAsync();
-                soundRef.current = null;
+                try {
+                    await fadeOut(oldSound);
+                    await oldSound.unloadAsync();
+                } catch (e) {
+                    console.log('Error unloading previous sound:', e);
+                }
             }
 
-            // Load new
+            // If another request came in while we were unloading, abort
+            if (myGen !== playbackGenRef.current) {
+                setIsLoading(false);
+                return;
+            }
+
+            // Load new sound
             setCurrentUri(uri);
             const { sound: newSound } = await Audio.Sound.createAsync(
                 { uri },
@@ -107,17 +127,69 @@ export const PreviewProvider = ({ children }) => {
                 onPlaybackStatusUpdate
             );
 
+            // Check gen again before committing
+            if (myGen !== playbackGenRef.current) {
+                await newSound.unloadAsync();
+                setIsLoading(false);
+                return;
+            }
+
             soundRef.current = newSound;
             setIsPlaying(true);
             await fadeIn(newSound);
 
         } catch (error) {
             console.log('Error playing preview:', error);
-            // Reset state on error
-            setIsPlaying(false);
-            setCurrentUri(null);
+            // Reset state on error only if we are still the active request
+            if (myGen === playbackGenRef.current) {
+                setIsPlaying(false);
+                setCurrentUri(null);
+            }
         } finally {
-            setIsLoading(false);
+            if (myGen === playbackGenRef.current) {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    const playSong = async (song, onUrlFound) => {
+        // Prevent re-trigger if already loading this song
+        if (loadingSongId === song.id) return;
+
+        // If we have the URL, just play
+        if (song.audio_sample_url) {
+            // Cancel any pending load
+            loadingSongIdRef.current = null;
+            setLoadingSongId(null);
+            playPreview(song.audio_sample_url);
+            return;
+        }
+
+        // Need to fetch
+        loadingSongIdRef.current = song.id;
+        setLoadingSongId(song.id);
+
+        try {
+            const url = await findPreviewUrl(song.title, song.artist);
+
+            // Check race condition
+            if (loadingSongIdRef.current !== song.id) return;
+
+            if (url) {
+                updateSong(song.id, { audio_sample_url: url });
+                if (onUrlFound) onUrlFound(song.id, url);
+                playPreview(url);
+            } else {
+                // Could not find preview
+                // Maybe play error sound or just stop
+            }
+        } catch (error) {
+            console.log('Error fetching preview in context:', error);
+        } finally {
+            if (loadingSongIdRef.current === song.id) {
+                loadingSongIdRef.current = null;
+                setLoadingSongId(null);
+            }
         }
     };
 
@@ -137,7 +209,9 @@ export const PreviewProvider = ({ children }) => {
             isPlaying,
             isLoading,
             duration,
-            position
+            position,
+            loadingSongId,
+            playSong
         }}>
             {children}
         </PreviewContext.Provider>
