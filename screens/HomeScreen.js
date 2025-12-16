@@ -197,6 +197,13 @@ export default function HomeScreen({ navigation, route }) {
         )
         : songs;
 
+    // Memoized tags with selected ones first (in selection order)
+    const displayTags = React.useMemo(() => {
+        const selected = selectedTags.map(id => tags.find(t => t.id === id)).filter(Boolean);
+        const unselected = tags.filter(t => !selectedTags.includes(t.id));
+        return [...selected, ...unselected];
+    }, [tags, selectedTags]);
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
             <View style={styles.header}>
@@ -217,7 +224,7 @@ export default function HomeScreen({ navigation, route }) {
                 />
             </View>
             <TagFilter
-                tags={tags}
+                tags={displayTags}
                 selectedTags={selectedTags}
                 onToggleTag={handleToggleTag}
                 onDeleteTag={handleDeleteTag}
