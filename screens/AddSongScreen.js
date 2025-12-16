@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
         marginRight: theme.spacing.m,
     },
     artwork: {
-        width: 50,
-        height: 50,
+        width: 64,
+        height: 64,
         borderRadius: theme.borderRadius.s,
     },
     playOverlay: {

@@ -58,19 +58,36 @@ export const PreviewProvider = ({ children }) => {
         }
     };
 
-    const onPlaybackStatusUpdate = (status) => {
-        if (status.isLoaded) {
-            setDuration(status.durationMillis);
-            setPosition(status.positionMillis);
+    // Use a ref to store the latest callback logic to avoid stale closures
+    const onPlaybackStatusUpdateCallback = useRef((status) => { });
 
-            if (status.didJustFinish) {
-                setIsPlaying(false);
-                setPosition(status.durationMillis);
-                if (soundRef.current) {
-                    soundRef.current.setPositionAsync(0);
-                    soundRef.current.setVolumeAsync(1);
+    // Update the ref whenever the logic dependencies change (though usually stable)
+    useEffect(() => {
+        onPlaybackStatusUpdateCallback.current = (status) => {
+            if (status.isLoaded) {
+                setDuration(status.durationMillis);
+                setPosition(status.positionMillis);
+
+                if (status.didJustFinish) {
+                    setIsPlaying(false);
+                    setPosition(status.durationMillis);
+                    if (soundRef.current) {
+                        // Explicitly stop and reset
+                        soundRef.current.stopAsync();
+                        soundRef.current.setPositionAsync(0);
+                        soundRef.current.setVolumeAsync(1);
+                    }
                 }
+            } else if (status.error) {
+                console.log(`Player Error: ${status.error}`);
+                setIsPlaying(false);
             }
+        };
+    });
+
+    const onPlaybackStatusUpdate = (status) => {
+        if (onPlaybackStatusUpdateCallback.current) {
+            onPlaybackStatusUpdateCallback.current(status);
         }
     };
 
@@ -90,8 +107,15 @@ export const PreviewProvider = ({ children }) => {
                     if (myGen !== playbackGenRef.current) return;
                     if (soundRef.current._loaded) await soundRef.current.pauseAsync();
                 } else {
+                    // Reset to start if it was finished/at end
+                    const status = await soundRef.current.getStatusAsync();
+                    if (status.positionMillis >= status.durationMillis) {
+                        await soundRef.current.setPositionAsync(0);
+                    }
+
                     setIsPlaying(true);
                     if (soundRef.current._loaded) {
+                        await soundRef.current.setVolumeAsync(0); // Ensure volume starts at 0 for fade in
                         await soundRef.current.playAsync();
                         fadeIn(soundRef.current);
                     }

@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center', // Changed to center for better alignment
-        marginBottom: theme.spacing.l,
+        marginBottom: theme.spacing.m,
     },
     artworkWrapper: {
         marginRight: theme.spacing.m,
