@@ -74,7 +74,22 @@ export default function HomeScreen({ navigation, route }) {
 
     const loadTags = () => {
         const allTags = getTags();
-        setTags(allTags);
+
+        // Custom sort: Top, To Try, To Learn first
+        const priorityTags = ['Top', 'To Try', 'To Learn'];
+
+        const sortedTags = allTags.sort((a, b) => {
+            const indexA = priorityTags.indexOf(a.name);
+            const indexB = priorityTags.indexOf(b.name);
+
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are priority
+            if (indexA !== -1) return -1; // Only A is priority
+            if (indexB !== -1) return 1; // Only B is priority
+
+            return a.name.localeCompare(b.name); // Default alphabetical
+        });
+
+        setTags(sortedTags);
     };
 
     const handleToggleTag = (tagId) => {
@@ -121,10 +136,12 @@ export default function HomeScreen({ navigation, route }) {
         return `${labels[sortBy] || 'Sort'} ${arrow}`;
     };
 
-    // Filter songs by selected tags
+    // Filter songs by selected tags (AND logic)
     const filteredSongs = selectedTags.length > 0
         ? songs.filter(song =>
-            song.tags && song.tags.some(tag => selectedTags.includes(tag.id))
+            song.tags && selectedTags.every(selectedTagId =>
+                song.tags.some(songTag => songTag.id === selectedTagId)
+            )
         )
         : songs;
 
