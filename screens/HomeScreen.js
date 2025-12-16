@@ -14,6 +14,8 @@ import FloatingActionButton from '../components/FloatingActionButton';
 import SortBottomSheet from '../components/SortBottomSheet';
 
 
+import { Ionicons } from '@expo/vector-icons';
+
 export default function HomeScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
@@ -84,16 +86,7 @@ export default function HomeScreen({ navigation, route }) {
         });
     };
 
-    const handleSeed = () => {
-        try {
-            resetDatabase();
-            seedDatabase(seedData);
-            loadData();
-            showToast({ message: 'Database seeded successfully!', type: 'success' });
-        } catch (error) {
-            showToast({ message: 'Error seeding database', type: 'error' });
-        }
-    };
+    // Removed handleSeed from here as it moved to Settings
 
     const handleSortSelect = (newSortBy) => {
         if (sortBy === newSortBy) {
@@ -140,7 +133,9 @@ export default function HomeScreen({ navigation, route }) {
             <View style={styles.header}>
                 <Text style={styles.title}>Magic Mic</Text>
                 <View style={styles.headerButtons}>
-                    <Button title="Seed" onPress={handleSeed} color={theme.colors.secondary} />
+                    <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                        <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
+                    </TouchableOpacity>
                 </View>
             </View>
             <View style={styles.searchContainer}>

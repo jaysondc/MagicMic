@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import HomeScreen from './screens/HomeScreen';
 import AddSongScreen from './screens/AddSongScreen';
 import SongDetailsScreen from './screens/SongDetailsScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import { theme } from './lib/theme';
 import { ToastProvider } from './context/ToastContext';
 import { PreviewProvider } from './context/PreviewContext';
@@ -48,6 +49,11 @@ export default function App() {
                   name="SongDetails"
                   component={SongDetailsScreen}
                   options={{ title: 'Song Details' }}
+                />
+                <Stack.Screen
+                  name="Settings"
+                  component={SettingsScreen}
+                  options={{ title: 'Backup & Restore' }}
                 />
               </Stack.Navigator>
             </NavigationContainer>
