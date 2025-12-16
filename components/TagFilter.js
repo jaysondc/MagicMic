@@ -126,20 +126,14 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={toggleExpand}>
-                    <Text style={styles.expandText}>{expanded ? 'Collapse ▲' : 'Expand ▼'}</Text>
-                </TouchableOpacity>
-            </View>
-
             {expanded ? (
-                <View style={styles.grid}>
+                <View style={[styles.grid, styles.contentPadding]}>
                     {showSort && renderSortChip()}
                     {tags.map(renderTag)}
                     {renderAddTag()}
                 </View>
             ) : (
-                <View style={styles.contentRow}>
+                <View style={[styles.contentRow, styles.contentPadding]}>
                     {showSort && (
                         <>
                             {renderSortChip()}
@@ -152,6 +146,14 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
                     </ScrollView>
                 </View>
             )}
+
+            <TouchableOpacity onPress={toggleExpand} style={styles.expandButton}>
+                <Ionicons
+                    name={expanded ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color={theme.colors.text}
+                />
+            </TouchableOpacity>
         </View>
     );
 };
@@ -159,26 +161,33 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
 const styles = StyleSheet.create({
     container: {
         backgroundColor: theme.colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        paddingHorizontal: theme.spacing.m,
-        marginBottom: theme.spacing.s,
+        position: 'relative',
     },
     label: {
         color: theme.colors.textSecondary,
         fontSize: 12,
         textTransform: 'uppercase',
     },
-    expandText: {
-        color: theme.colors.secondary,
-        fontSize: 12,
+    expandButton: {
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: theme.colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        zIndex: 10,
+    },
+    contentPadding: {
+        paddingRight: theme.spacing.xl + theme.spacing.s, // Make room for the button
     },
     contentRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingHorizontal: theme.spacing.m,
     },
     separator: {
         width: 8,
@@ -208,7 +217,6 @@ const styles = StyleSheet.create({
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        paddingHorizontal: theme.spacing.m,
     },
     chip: {
         borderWidth: 1,

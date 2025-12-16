@@ -215,23 +215,32 @@ export default function HomeScreen({ navigation, route }) {
                 </View>
             </View>
             <View style={styles.searchContainer}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search songs..."
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
+                <View style={styles.searchWrapper}>
+                    <TextInput
+                        style={[styles.searchInput, searchQuery.length > 0 && styles.searchInputWithClear]}
+                        placeholder="Search songs..."
+                        placeholderTextColor={theme.colors.textSecondary}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                            <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+            <View style={styles.tagFilterContainer}>
+                <TagFilter
+                    tags={displayTags}
+                    selectedTags={selectedTags}
+                    onToggleTag={handleToggleTag}
+                    onDeleteTag={handleDeleteTag}
+                    onTagsChanged={loadTags}
+                    sortLabel={getSortLabel()}
+                    onSortPress={handleSortPress}
                 />
             </View>
-            <TagFilter
-                tags={displayTags}
-                selectedTags={selectedTags}
-                onToggleTag={handleToggleTag}
-                onDeleteTag={handleDeleteTag}
-                onTagsChanged={loadTags}
-                sortLabel={getSortLabel()}
-                onSortPress={handleSortPress}
-            />
             <SongList
                 songs={filteredSongs}
                 onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
@@ -275,7 +284,7 @@ const styles = StyleSheet.create({
         fontSize: 20,
     },
     searchContainer: {
-        paddingBottom: theme.spacing.s,
+        paddingBottom: theme.spacing.m,
         paddingHorizontal: theme.spacing.m,
         backgroundColor: theme.colors.background,
     },
@@ -286,5 +295,23 @@ const styles = StyleSheet.create({
         color: theme.colors.text,
         borderWidth: 1,
         borderColor: theme.colors.border,
+    },
+    searchInputWithClear: {
+        paddingRight: 40,
+    },
+    searchWrapper: {
+        position: 'relative',
+        justifyContent: 'center',
+    },
+    tagFilterContainer: {
+        paddingHorizontal: theme.spacing.m,
+        paddingBottom: theme.spacing.s,
+    },
+    clearButton: {
+        position: 'absolute',
+        right: theme.spacing.m,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

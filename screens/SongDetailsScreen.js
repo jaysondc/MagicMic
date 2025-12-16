@@ -343,7 +343,6 @@ export default function SongDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Tags</Text>
                     <TagFilter
                         tags={sortedTags}
                         selectedTags={selectedTags}
@@ -353,12 +352,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Rating</Text>
                     <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Performance</Text>
                     <View style={styles.statsContainer}>
                         <View style={styles.statBox}>
                             <Text style={styles.statValue}>{song.sing_count || 0}</Text>
@@ -368,7 +365,7 @@ export default function SongDetailsScreen({ route, navigation }) {
                         <View style={styles.statBox}>
                             <Text style={styles.statValue}>
                                 {song.last_sung_date
-                                    ? new Date(song.last_sung_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                    ? new Date(song.last_sung_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                                     : '--'}
                             </Text>
                             <Text style={styles.statLabel}>Last Sung</Text>

@@ -135,14 +135,21 @@ export default function AddSongScreen({ navigation }) {
     return (
         <SafeAreaView style={styles.container} edges={['left', 'right']}>
             <View style={styles.searchContainer}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search for a song..."
-                    placeholderTextColor={theme.colors.textSecondary}
-                    value={query}
-                    onChangeText={setQuery}
-                    autoFocus={true}
-                />
+                <View style={styles.searchWrapper}>
+                    <TextInput
+                        style={[styles.searchInput, query.length > 0 && styles.searchInputWithClear]}
+                        placeholder="Search for a song..."
+                        placeholderTextColor={theme.colors.textSecondary}
+                        value={query}
+                        onChangeText={setQuery}
+                        autoFocus={true}
+                    />
+                    {query.length > 0 && (
+                        <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
+                            <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {loading && <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />}
@@ -190,6 +197,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         borderWidth: 1,
         borderColor: theme.colors.border,
+    },
+    searchInputWithClear: {
+        paddingRight: 40,
+    },
+    searchWrapper: {
+        position: 'relative',
+        justifyContent: 'center',
+    },
+    clearButton: {
+        position: 'absolute',
+        right: theme.spacing.m,
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     loader: {
         marginTop: theme.spacing.xl,
