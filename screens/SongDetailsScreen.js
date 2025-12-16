@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, interpolate } from 'react-native-reanimated';
 
 import TagFilter from '../components/TagFilter';
 import RatingWidget from '../components/RatingWidget';
@@ -26,6 +26,34 @@ export default function SongDetailsScreen({ route, navigation }) {
     const [lyricsExpanded, setLyricsExpanded] = useState(false);
     const [metadataExpanded, setMetadataExpanded] = useState(false);
     const [loadingMetadata, setLoadingMetadata] = useState(false);
+
+    // Custom sort: Top, To Try, To Learn always first. Then selected tags (in selection order). Then others.
+    const sortedTags = useMemo(() => {
+        if (!allTags || !Array.isArray(allTags)) return [];
+
+        const priorityNames = ['Top', 'To Try', 'To Learn'];
+
+        const isPriority = (t) => t && t.name && priorityNames.includes(t.name);
+
+        // 1. Priority Tags (in specific order)
+        const priorityTags = priorityNames
+            .map(name => allTags.find(t => t && t.name === name))
+            .filter(Boolean);
+
+        // 2. Other Selected Tags (Preserve selection/array order)
+        const otherSelected = selectedTags
+            .map(id => allTags.find(t => t && t.id === id))
+            .filter(t => t && !isPriority(t));
+
+        // 3. Remaining Tags
+        const usedIds = new Set([
+            ...priorityTags.map(t => t.id),
+            ...otherSelected.map(t => t.id)
+        ]);
+        const remaining = allTags.filter(t => t && !usedIds.has(t.id));
+
+        return [...priorityTags, ...otherSelected, ...remaining];
+    }, [allTags, selectedTags]);
 
     // Stop preview when leaving the screen
     useFocusEffect(
@@ -137,7 +165,9 @@ export default function SongDetailsScreen({ route, navigation }) {
     const successStyle = useAnimatedStyle(() => {
         return {
             opacity: successOpacity.value,
-            transform: [{ translateY: withTiming(successOpacity.value === 1 ? -20 : 0) }]
+            transform: [{
+                translateY: interpolate(successOpacity.value, [0, 1], [0, -20])
+            }]
         };
     });
 
@@ -237,6 +267,8 @@ export default function SongDetailsScreen({ route, navigation }) {
     const progress = (isCurrent && currentDuration > 0) ? currentPosition / currentDuration : 0;
     const strokeDashoffset = circumference - progress * circumference;
 
+
+
     return (
         <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
             <ScrollView contentContainerStyle={styles.content}>
@@ -313,7 +345,7 @@ export default function SongDetailsScreen({ route, navigation }) {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Tags</Text>
                     <TagFilter
-                        tags={allTags}
+                        tags={sortedTags}
                         selectedTags={selectedTags}
                         onToggleTag={handleToggleTag}
                         onTagsChanged={loadTags}
