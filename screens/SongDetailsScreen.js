@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     },
     title: {
         ...theme.textVariants.header,
-        marginBottom: 4,
+        marginBottom: theme.spacing.xs,
         fontSize: 20,
         lineHeight: 24,
     },
@@ -585,8 +585,8 @@ const styles = StyleSheet.create({
         color: theme.colors.text,
     },
     actions: {
-        marginTop: theme.spacing.xl,
-        marginBottom: theme.spacing.xl,
+        marginTop: theme.spacing.l,
+        marginBottom: theme.spacing.l,
     },
     statsContainer: {
         flexDirection: 'row',
