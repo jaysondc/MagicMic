@@ -75,17 +75,21 @@ const SongList = ({ songs, onSongPress }) => {
 
     // Local override for songs that just got a URL fetched.
     // This allows immediate feedback without waiting for parent refresh.
-    // Map of songId -> url
-    const [localUrls, setLocalUrls] = useState({});
+    // Map of songId -> { audio_sample_url, album_cover_url }
+    const [localUpdates, setLocalUpdates] = useState({});
 
-    const handlePreviewUrlUpdate = (id, url) => {
-        setLocalUrls(prev => ({ ...prev, [id]: url }));
+    const handlePreviewUrlUpdate = (id, url, artworkUrl) => {
+        setLocalUpdates(prev => ({
+            ...prev,
+            [id]: { audio_sample_url: url, album_cover_url: artworkUrl }
+        }));
     };
 
     const renderItem = ({ item }) => {
         // Merge local update if exists
-        const displayItem = localUrls[item.id]
-            ? { ...item, audio_sample_url: localUrls[item.id] }
+        const updates = localUpdates[item.id];
+        const displayItem = updates
+            ? { ...item, ...updates }
             : item;
 
         return (

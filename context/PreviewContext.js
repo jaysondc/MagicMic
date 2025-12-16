@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
 import { Audio } from 'expo-av';
-import { findPreviewUrl } from '../lib/itunes';
+import { findSongMetadata } from '../lib/itunes';
 import { updateSong } from '../lib/database';
 
 const PreviewContext = createContext();
@@ -30,25 +30,26 @@ export const PreviewProvider = ({ children }) => {
     const fadeOut = async (soundObj) => {
         if (!soundObj) return;
         try {
-            // Fade out over ~60ms
-            const steps = 6;
+            // Fast fade out (3 steps * 10ms = 30ms)
+            const steps = 3;
             for (let i = steps; i >= 0; i--) {
+                if (!soundObj._loaded) break; // Check if still loaded
                 await soundObj.setVolumeAsync(i / steps);
                 await new Promise(resolve => setTimeout(resolve, 10));
             }
         } catch (e) {
-            console.log('Error fading out:', e);
+            // Ignore errors during fade
         }
     };
 
     const fadeIn = async (soundObj) => {
         if (!soundObj) return;
         try {
+            // Fast fade in
             await soundObj.setVolumeAsync(0);
-            await soundObj.playAsync();
-            // Fade in over ~150ms
-            const steps = 6;
+            const steps = 3;
             for (let i = 0; i <= steps; i++) {
+                if (!soundObj._loaded) break;
                 await soundObj.setVolumeAsync(i / steps);
                 await new Promise(resolve => setTimeout(resolve, 10));
             }
@@ -67,7 +68,6 @@ export const PreviewProvider = ({ children }) => {
                 setPosition(status.durationMillis);
                 if (soundRef.current) {
                     soundRef.current.setPositionAsync(0);
-                    // Also reset volume for next play
                     soundRef.current.setVolumeAsync(1);
                 }
             }
@@ -88,66 +88,62 @@ export const PreviewProvider = ({ children }) => {
                     setIsPlaying(false);
                     await fadeOut(soundRef.current);
                     if (myGen !== playbackGenRef.current) return;
-                    if (soundRef.current) await soundRef.current.pauseAsync();
+                    if (soundRef.current._loaded) await soundRef.current.pauseAsync();
                 } else {
                     setIsPlaying(true);
-                    await fadeIn(soundRef.current);
+                    if (soundRef.current._loaded) {
+                        await soundRef.current.playAsync();
+                        fadeIn(soundRef.current);
+                    }
                 }
                 return;
             }
 
-            // Case 2: New song or first song
+            // Case 2: New song
+            // Update UI immediately (optimistic switch)
             setIsLoading(true);
+            setIsPlaying(false);
+            setCurrentUri(uri);
 
-            // Detach and unload previous sound immediately from our tracker
+            // Detach and clean up old sound in PARALLEL
             const oldSound = soundRef.current;
             soundRef.current = null;
 
             if (oldSound) {
-                setIsPlaying(false);
-                try {
-                    await fadeOut(oldSound);
-                    await oldSound.unloadAsync();
-                } catch (e) {
-                    console.log('Error unloading previous sound:', e);
-                }
-            }
-
-            // If another request came in while we were unloading, abort
-            if (myGen !== playbackGenRef.current) {
-                setIsLoading(false);
-                return;
+                // Fire and forget cleanup
+                fadeOut(oldSound)
+                    .then(() => oldSound.unloadAsync())
+                    .catch(() => { });
             }
 
             // Load new sound
-            setCurrentUri(uri);
             const { sound: newSound } = await Audio.Sound.createAsync(
                 { uri },
                 { shouldPlay: false, volume: 0, progressUpdateIntervalMillis: 50 },
                 onPlaybackStatusUpdate
             );
 
-            // Check gen again before committing
+            // Check if cancelled
             if (myGen !== playbackGenRef.current) {
                 await newSound.unloadAsync();
-                setIsLoading(false);
                 return;
             }
 
             soundRef.current = newSound;
-            setIsPlaying(true);
-            await fadeIn(newSound);
+
+            // Start playing immediately before fade in
+            await newSound.playAsync();
+            setIsPlaying(true); // Sync UI with actual audio start
+            setIsLoading(false);
+
+            fadeIn(newSound); // Fire and forget fade in
 
         } catch (error) {
             console.log('Error playing preview:', error);
-            // Reset state on error only if we are still the active request
             if (myGen === playbackGenRef.current) {
                 setIsPlaying(false);
-                setCurrentUri(null);
-            }
-        } finally {
-            if (myGen === playbackGenRef.current) {
                 setIsLoading(false);
+                setCurrentUri(null);
             }
         }
     };
@@ -170,15 +166,23 @@ export const PreviewProvider = ({ children }) => {
         setLoadingSongId(song.id);
 
         try {
-            const url = await findPreviewUrl(song.title, song.artist);
+            const metadata = await findSongMetadata(song.title, song.artist);
 
             // Check race condition
             if (loadingSongIdRef.current !== song.id) return;
 
-            if (url) {
-                updateSong(song.id, { audio_sample_url: url });
-                if (onUrlFound) onUrlFound(song.id, url);
-                playPreview(url);
+            if (metadata && metadata.previewUrl) {
+                const updates = { audio_sample_url: metadata.previewUrl };
+
+                // Also save artwork if found and not already present (or just update it)
+                if (metadata.artworkUrl && !song.album_cover_url) {
+                    updates.album_cover_url = metadata.artworkUrl;
+                }
+
+                updateSong(song.id, updates);
+
+                if (onUrlFound) onUrlFound(song.id, metadata.previewUrl, updates.album_cover_url);
+                playPreview(metadata.previewUrl);
             } else {
                 // Could not find preview
                 // Maybe play error sound or just stop
