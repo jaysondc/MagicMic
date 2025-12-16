@@ -30,11 +30,11 @@ export const PreviewProvider = ({ children }) => {
     const fadeOut = async (soundObj) => {
         if (!soundObj) return;
         try {
-            // Fade out over ~150ms
+            // Fade out over ~60ms
             const steps = 6;
             for (let i = steps; i >= 0; i--) {
                 await soundObj.setVolumeAsync(i / steps);
-                await new Promise(resolve => setTimeout(resolve, 25));
+                await new Promise(resolve => setTimeout(resolve, 10));
             }
         } catch (e) {
             console.log('Error fading out:', e);
