@@ -50,7 +50,7 @@ export const PreviewProvider = ({ children }) => {
             const steps = 6;
             for (let i = 0; i <= steps; i++) {
                 await soundObj.setVolumeAsync(i / steps);
-                await new Promise(resolve => setTimeout(resolve, 25));
+                await new Promise(resolve => setTimeout(resolve, 10));
             }
         } catch (e) {
             console.log('Error fading in:', e);

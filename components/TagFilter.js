@@ -8,7 +8,8 @@ import {
     LayoutAnimation,
     Platform,
     UIManager,
-    TextInput
+    TextInput,
+    Alert
 } from 'react-native';
 import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
@@ -18,7 +19,7 @@ if (Platform.OS === 'android') {
     // Android specific configs
 }
 
-const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged, sortLabel, onSortPress }) => {
+const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged, sortLabel, onSortPress }) => {
     const [expanded, setExpanded] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [newTagName, setNewTagName] = useState('');
@@ -44,6 +45,23 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged, sortLabel, 
         if (onTagsChanged) onTagsChanged();
     };
 
+    const handleLongPress = (tag) => {
+        if (!onDeleteTag) return;
+
+        Alert.alert(
+            "Delete Tag",
+            `Are you sure you want to delete "${tag.name}"?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => onDeleteTag(tag.id)
+                }
+            ]
+        );
+    };
+
     const renderTag = (tag) => {
         const isSelected = selectedTags.includes(tag.id);
         return (
@@ -55,6 +73,7 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onTagsChanged, sortLabel, 
                     isSelected && { backgroundColor: tag.color }
                 ]}
                 onPress={() => onToggleTag(tag.id)}
+                onLongPress={() => handleLongPress(tag)}
             >
                 <Text style={[
                     styles.chipText,

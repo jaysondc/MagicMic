@@ -6,7 +6,19 @@ import { useFocusEffect } from '@react-navigation/native';
 import { usePreview } from '../context/PreviewContext';
 import SongList from '../components/SongList';
 import TagFilter from '../components/TagFilter';
-import { initDatabase, getSongs, getTags, resetDatabase, seedDatabase, runMigrations } from '../lib/database';
+
+import {
+    initDatabase,
+    getSongs,
+    getTags,
+    resetDatabase,
+    seedDatabase,
+    runMigrations,
+    deleteTag,
+    addTag,
+    getSongIdsForTag,
+    linkTagToSong
+} from '../lib/database';
 import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
@@ -101,6 +113,46 @@ export default function HomeScreen({ navigation, route }) {
         });
     };
 
+    const handleDeleteTag = (tagId) => {
+        const tagToDelete = tags.find(t => t.id === tagId);
+        if (!tagToDelete) return;
+
+        // Backup links before deleting
+        const linkedSongIds = getSongIdsForTag(tagId);
+        const wasSelected = selectedTags.includes(tagId);
+
+        deleteTag(tagId);
+        loadData();
+
+        // Also remove from selected if it was selected
+        if (wasSelected) {
+            setSelectedTags(prev => prev.filter(id => id !== tagId));
+        }
+
+        showToast({
+            message: `Deleted "${tagToDelete.name}"`,
+            actionLabel: 'Undo',
+            onAction: () => {
+                // Restore tag
+                const newTagId = addTag(tagToDelete.name, tagToDelete.color);
+
+                // Restore links
+                linkedSongIds.forEach(songId => {
+                    linkTagToSong(songId, newTagId);
+                });
+
+                loadData();
+
+                // Restore selection if it was selected
+                if (wasSelected) {
+                    setSelectedTags(prev => [...prev, newTagId]);
+                }
+
+                showToast({ message: 'Tag restored' });
+            }
+        });
+    };
+
     // Removed handleSeed from here as it moved to Settings
 
     const handleSortSelect = (newSortBy) => {
@@ -168,6 +220,7 @@ export default function HomeScreen({ navigation, route }) {
                 tags={tags}
                 selectedTags={selectedTags}
                 onToggleTag={handleToggleTag}
+                onDeleteTag={handleDeleteTag}
                 onTagsChanged={loadTags}
                 sortLabel={getSortLabel()}
                 onSortPress={handleSortPress}

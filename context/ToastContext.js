@@ -46,7 +46,7 @@ export const ToastProvider = ({ children }) => {
     }, []);
 
     return (
-        <ToastContext.Provider value={{ showToast, hideToast }}>
+        <ToastContext.Provider value={{ showToast, hideToast, isToastVisible: toast.visible }}>
             {children}
             <Toast
                 visible={toast.visible}

@@ -12,7 +12,7 @@ import RatingWidget from '../components/RatingWidget';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import { usePreview } from '../context/PreviewContext';
-import { getSongs, getTags, linkTagToSong, deleteSong, updateSong, addSong, db } from '../lib/database';
+import { getSongs, getTags, linkTagToSong, unlinkTagFromSong, deleteSong, updateSong, addSong } from '../lib/database';
 import { findSongMetadata } from '../lib/itunes';
 
 export default function SongDetailsScreen({ route, navigation }) {
@@ -168,7 +168,7 @@ export default function SongDetailsScreen({ route, navigation }) {
         setSelectedTags(newSelectedTags);
 
         if (isSelected) {
-            db.runSync('DELETE FROM song_tags WHERE song_id = ? AND tag_id = ?', [songId, tagId]);
+            unlinkTagFromSong(songId, tagId);
         } else {
             linkTagToSong(songId, tagId);
         }
