@@ -291,10 +291,17 @@ export default function SongDetailsScreen({ route, navigation }) {
 
                     <View style={styles.titleContainer}>
                         <Text style={styles.title}>{song.title}</Text>
-                        <Text style={styles.artist}>
-                            {song.artist}
-                            {song.duration_ms ? ` • ${Math.floor(song.duration_ms / 60000)}:${((song.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}` : ''}
-                        </Text>
+                        <View style={styles.artistRow}>
+                            <Text style={styles.artist}>{song.artist}</Text>
+                            {song.duration_ms && (
+                                <View style={styles.durationContainer}>
+                                    <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} style={styles.durationIcon} />
+                                    <Text style={styles.artist}>
+                                        {Math.floor(song.duration_ms / 60000)}:{((song.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
                     </View>
 
                     <TouchableOpacity
@@ -529,9 +536,23 @@ const styles = StyleSheet.create({
         fontSize: 20,
         lineHeight: 24,
     },
+    artistRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
     artist: {
         ...theme.textVariants.subheader,
         fontSize: 16,
+    },
+    durationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    durationIcon: {
+        paddingTop: 2,
+        marginRight: 2,
     },
     playerButton: {
         width: 50,

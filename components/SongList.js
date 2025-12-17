@@ -50,10 +50,17 @@ const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, 
                 onPress={() => onSongPress && onSongPress(item)}
             >
                 <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.artist}>
-                    {item.artist}
-                    {item.duration_ms ? ` • ${Math.floor(item.duration_ms / 60000)}:${((item.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}` : ''}
-                </Text>
+                <View style={styles.artistRow}>
+                    <Text style={styles.artist}>{item.artist}</Text>
+                    {item.duration_ms && (
+                        <View style={styles.durationContainer}>
+                            <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} style={styles.durationIcon} />
+                            <Text style={styles.artist}>
+                                {Math.floor(item.duration_ms / 60000)}:{((item.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}
+                            </Text>
+                        </View>
+                    )}
+                </View>
 
                 {item.tags && item.tags.length > 0 && (
                     <View style={styles.tagsContainer}>
@@ -78,10 +85,14 @@ const SongList = ({ songs, onSongPress }) => {
     // Map of songId -> { audio_sample_url, album_cover_url }
     const [localUpdates, setLocalUpdates] = useState({});
 
-    const handlePreviewUrlUpdate = (id, url, artworkUrl) => {
+    const handlePreviewUrlUpdate = (id, url, artworkUrl, durationMs) => {
         setLocalUpdates(prev => ({
             ...prev,
-            [id]: { audio_sample_url: url, album_cover_url: artworkUrl }
+            [id]: {
+                audio_sample_url: url,
+                album_cover_url: artworkUrl,
+                ...(durationMs && { duration_ms: durationMs })
+            }
         }));
     };
 
@@ -166,10 +177,24 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: theme.colors.text,
     },
+    artistRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+        flexWrap: 'wrap',
+    },
     artist: {
         fontSize: 14,
         color: theme.colors.textSecondary,
-        marginTop: 4,
+    },
+    durationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+    },
+    durationIcon: {
+        paddingTop: 2,
+        marginRight: 2,
     },
     tagsContainer: {
         flexDirection: 'row',

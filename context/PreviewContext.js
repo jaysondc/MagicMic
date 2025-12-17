@@ -172,20 +172,47 @@ export const PreviewProvider = ({ children }) => {
         }
     };
 
+    const fetchLyrics = async (title, artist, durationMs) => {
+        if (!title || !artist) return null;
+
+        try {
+            let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
+            if (durationMs) {
+                const durationSeconds = Math.round(durationMs / 1000);
+                url += `&duration=${durationSeconds}`;
+            }
+
+            console.log('Fetching lyrics from:', url);
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                return data.plainLyrics || null;
+            }
+        } catch (error) {
+            console.log('Error fetching lyrics in context:', error);
+        }
+        return null;
+    };
+
     const playSong = async (song, onUrlFound) => {
         // Prevent re-trigger if already loading this song
         if (loadingSongId === song.id) return;
 
-        // If we have the URL, just play
+        // If we have the URL, play it but still check for missing metadata
         if (song.audio_sample_url) {
             // Cancel any pending load
             loadingSongIdRef.current = null;
             setLoadingSongId(null);
             playPreview(song.audio_sample_url);
+
+            // Fetch missing metadata in the background
+            if (!song.duration_ms || !song.lyrics) {
+                fetchMissingMetadata(song, onUrlFound);
+            }
             return;
         }
 
-        // Need to fetch
+        // Need to fetch everything
         loadingSongIdRef.current = song.id;
         setLoadingSongId(song.id);
 
@@ -198,14 +225,30 @@ export const PreviewProvider = ({ children }) => {
             if (metadata && metadata.previewUrl) {
                 const updates = { audio_sample_url: metadata.previewUrl };
 
-                // Also save artwork if found and not already present (or just update it)
+                // Save artwork if found and not already present
                 if (metadata.artworkUrl && !song.album_cover_url) {
                     updates.album_cover_url = metadata.artworkUrl;
                 }
 
+                // Save duration if found and not already present
+                if (metadata.durationMs && !song.duration_ms) {
+                    updates.duration_ms = metadata.durationMs;
+                    console.log('Saving duration:', metadata.durationMs);
+                }
+
+                // Fetch lyrics in parallel (don't block playback)
+                if (!song.lyrics) {
+                    fetchLyrics(song.title, song.artist, metadata.durationMs).then(lyrics => {
+                        if (lyrics) {
+                            console.log('Saving lyrics for song:', song.id);
+                            updateSong(song.id, { lyrics });
+                        }
+                    });
+                }
+
                 updateSong(song.id, updates);
 
-                if (onUrlFound) onUrlFound(song.id, metadata.previewUrl, updates.album_cover_url);
+                if (onUrlFound) onUrlFound(song.id, metadata.previewUrl, updates.album_cover_url, updates.duration_ms);
                 playPreview(metadata.previewUrl);
             } else {
                 // Could not find preview
@@ -218,6 +261,43 @@ export const PreviewProvider = ({ children }) => {
                 loadingSongIdRef.current = null;
                 setLoadingSongId(null);
             }
+        }
+    };
+
+    const fetchMissingMetadata = async (song, onUrlFound) => {
+        try {
+            const metadata = await findSongMetadata(song.title, song.artist);
+
+            if (metadata) {
+                const updates = {};
+
+                // Save duration if found and not already present
+                if (metadata.durationMs && !song.duration_ms) {
+                    updates.duration_ms = metadata.durationMs;
+                    console.log('Saving duration (background):', metadata.durationMs);
+                }
+
+                // Fetch lyrics in parallel
+                if (!song.lyrics) {
+                    fetchLyrics(song.title, song.artist, metadata.durationMs).then(lyrics => {
+                        if (lyrics) {
+                            console.log('Saving lyrics for song (background):', song.id);
+                            updateSong(song.id, { lyrics });
+                        }
+                    });
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    updateSong(song.id, updates);
+
+                    // Notify UI of duration update
+                    if (onUrlFound && updates.duration_ms) {
+                        onUrlFound(song.id, song.audio_sample_url, song.album_cover_url, updates.duration_ms);
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Error fetching missing metadata:', error);
         }
     };
 
