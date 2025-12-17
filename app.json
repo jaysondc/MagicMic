@@ -8,17 +8,17 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#15112B"
+      "image": "./assets/icon.png",
+      "resizeMode": "native",
+      "backgroundColor": "#28003A"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#15112B"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#28003A"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jaysondc.magicmic"

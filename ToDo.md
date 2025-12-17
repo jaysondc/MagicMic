@@ -1,7 +1,7 @@
 TODO List for Magic Mic
 
 # App
-- [ ] App icon
+- [X] App icon
 
 # Features
 - [X] Song Album Art
@@ -10,20 +10,20 @@ TODO List for Magic Mic
 - [X] Star Ratings
 - [X] Song Lyrics
 - [X] Song Preview
-- [ ] Auto-populate tags
+- [X] Auto-populate tags
 - [ ] Roulette based on filters
 - [ ] Add Manually
 - [X] Sort song list by date added?
-- [ ] Download lyrics when adding a song
+- [X] Download lyrics when adding a song
 - [X] Create toast instead of dialog
-- [ ] Delete Tags
+- [X] Delete Tags
 - [X] Song lyric preview bottomsheet in song search
 
 # Bugs
 - [X] Song list doesn't update when a song is added
 
 # Polish
-- [ ] Remove Repertoire Tag
+- [X] Remove Repertoire Tag
 - [X] Change Add Song button to FAB
 - [ ] Fix dim hold state
 - [X] Custom Dialog Style
