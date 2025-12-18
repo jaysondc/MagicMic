@@ -65,7 +65,8 @@ const SortBottomSheet = ({ visible, onClose, currentSortBy, onSelectSort, safeBo
         transform: [{ translateY: translateY.value }],
     }));
 
-    if (!visible && opacity.value === 0) return null;
+    if (!visible) return null;
+
 
     return (
         <Modal transparent visible={visible} onRequestClose={onClose} animationType="none" statusBarTranslucent>

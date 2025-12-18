@@ -5,18 +5,20 @@ import {
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    LayoutAnimation,
     Platform,
     UIManager,
     TextInput,
     Alert
 } from 'react-native';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
 import { Ionicons } from '@expo/vector-icons';
 
 if (Platform.OS === 'android') {
-    // Android specific configs
+    if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
 }
 
 const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged, sortLabel, onSortPress }) => {
@@ -25,7 +27,6 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     const [newTagName, setNewTagName] = useState('');
 
     const toggleExpand = () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setExpanded(!expanded);
     };
 
@@ -125,7 +126,7 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     );
 
     return (
-        <View style={styles.container}>
+        <Animated.View layout={LinearTransition} style={styles.container}>
             {expanded ? (
                 <View style={[styles.grid, styles.contentPadding]}>
                     {showSort && renderSortChip()}
@@ -154,9 +155,10 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
                     color={theme.colors.text}
                 />
             </TouchableOpacity>
-        </View>
+        </Animated.View>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {

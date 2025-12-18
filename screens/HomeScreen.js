@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, Button, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { StyleSheet, Text, View, Button, TextInput, TouchableOpacity, InteractionManager } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
@@ -36,14 +36,23 @@ export default function HomeScreen({ navigation, route }) {
 
     useFocusEffect(
         useCallback(() => {
-            return () => stopPreview();
-        }, [])
+            // Run data loading after transition interactions are complete to prevent stutter
+            const task = InteractionManager.runAfterInteractions(() => {
+                loadData();
+            });
+
+            return () => {
+                task.cancel();
+                stopPreview();
+            };
+        }, [searchQuery, sortBy, sortOrder])
     );
 
     const [searchQuery, setSearchQuery] = useState('');
     const [songs, setSongs] = useState([]);
     const [tags, setTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
+
 
     // Sort State
     const [sortBy, setSortBy] = useState('created_at');
@@ -58,20 +67,15 @@ export default function HomeScreen({ navigation, route }) {
     useEffect(() => {
         initDatabase();
         runMigrations(); // Add missing columns to existing databases
-        loadData();
+        // Initial load is also deferred
+        InteractionManager.runAfterInteractions(() => {
+            loadData();
+        });
     }, []);
 
     useEffect(() => {
         loadSongs();
     }, [searchQuery, sortBy, sortOrder]);
-
-    // Reload data when screen comes into focus (e.g. after adding a song or returning from details)
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('focus', () => {
-            loadData();
-        });
-        return unsubscribe;
-    }, [navigation, searchQuery, sortBy, sortOrder]);
 
     // Listen for refresh requests (e.g., from undo action)
     useEffect(() => {
@@ -80,34 +84,41 @@ export default function HomeScreen({ navigation, route }) {
         }
     }, [route.params?.refresh]);
 
-    const loadData = () => {
-        loadSongs();
-        loadTags();
+    const loadData = async () => {
+        await Promise.all([loadSongs(), loadTags()]);
     };
 
-    const loadSongs = () => {
-        const allSongs = getSongs(searchQuery, sortBy, sortOrder);
-        setSongs(allSongs);
+    const loadSongs = async () => {
+        try {
+            const allSongs = await getSongs(searchQuery, sortBy, sortOrder);
+            setSongs(allSongs);
+        } catch (error) {
+            console.error('Failed to load songs:', error);
+        }
     };
 
-    const loadTags = () => {
-        const allTags = getTags();
+    const loadTags = async () => {
+        try {
+            const allTags = await getTags();
 
-        // Custom sort: Top, To Try, To Learn first
-        const priorityTags = ['Top', 'To Try', 'To Learn'];
+            // Custom sort: Top, To Try, To Learn first
+            const priorityTags = ['Top', 'To Try', 'To Learn'];
 
-        const sortedTags = allTags.sort((a, b) => {
-            const indexA = priorityTags.indexOf(a.name);
-            const indexB = priorityTags.indexOf(b.name);
+            const sortedTags = allTags.sort((a, b) => {
+                const indexA = priorityTags.indexOf(a.name);
+                const indexB = priorityTags.indexOf(b.name);
 
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are priority
-            if (indexA !== -1) return -1; // Only A is priority
-            if (indexB !== -1) return 1; // Only B is priority
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are priority
+                if (indexA !== -1) return -1; // Only A is priority
+                if (indexB !== -1) return 1; // Only B is priority
 
-            return a.name.localeCompare(b.name); // Default alphabetical
-        });
+                return a.name.localeCompare(b.name); // Default alphabetical
+            });
 
-        setTags(sortedTags);
+            setTags(sortedTags);
+        } catch (error) {
+            console.error('Failed to load tags:', error);
+        }
     };
 
     const handleToggleTag = (tagId) => {
@@ -119,7 +130,7 @@ export default function HomeScreen({ navigation, route }) {
         });
     };
 
-    const handleDeleteTag = (tagId) => {
+    const handleDeleteTag = async (tagId) => {
         const tagToDelete = tags.find(t => t.id === tagId);
         if (!tagToDelete) return;
 
@@ -128,7 +139,8 @@ export default function HomeScreen({ navigation, route }) {
         const wasSelected = selectedTags.includes(tagId);
 
         deleteTag(tagId);
-        loadData();
+        await loadData();
+
 
         // Also remove from selected if it was selected
         if (wasSelected) {
@@ -184,6 +196,9 @@ export default function HomeScreen({ navigation, route }) {
         setIsRolling(true);
         setRouletteVisible(true);
 
+        // Scroll to top when opening roulette
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+
         // Randomly pick 3 (or fewer if not enough)
         const shuffled = [...filteredSongs].sort(() => 0.5 - Math.random());
         setRouletteSongs(shuffled.slice(0, 3));
@@ -196,6 +211,7 @@ export default function HomeScreen({ navigation, route }) {
             handleRollRoulette();
         }
     };
+
 
     const handleSortPress = () => {
         setSortSheetVisible(true);
@@ -215,21 +231,27 @@ export default function HomeScreen({ navigation, route }) {
         return `${labels[sortBy] || 'Sort'} ${arrow}`;
     };
 
-    // Filter songs by selected tags (AND logic)
-    const filteredSongs = selectedTags.length > 0
-        ? songs.filter(song =>
-            song.tags && selectedTags.every(selectedTagId =>
-                song.tags.some(songTag => songTag.id === selectedTagId)
+    const listRef = useRef(null);
+
+    // Filter songs by selected tags (OR logic)
+    const filteredSongs = useMemo(() => {
+        return selectedTags.length > 0
+            ? songs.filter(song =>
+                song.tags && selectedTags.some(selectedTagId =>
+                    song.tags.some(songTag => songTag.id === selectedTagId)
+                )
             )
-        )
-        : songs;
+            : songs;
+    }, [songs, selectedTags]);
+
 
     // Memoized tags with selected ones first (in selection order)
-    const displayTags = React.useMemo(() => {
+    const displayTags = useMemo(() => {
         const selected = selectedTags.map(id => tags.find(t => t.id === id)).filter(Boolean);
         const unselected = tags.filter(t => !selectedTags.includes(t.id));
         return [...selected, ...unselected];
     }, [tags, selectedTags]);
+
 
     return (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -272,6 +294,7 @@ export default function HomeScreen({ navigation, route }) {
                 />
             </View>
             <SongList
+                ref={listRef}
                 songs={filteredSongs}
                 onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
                 refreshing={isRolling}
@@ -287,6 +310,7 @@ export default function HomeScreen({ navigation, route }) {
                     />
                 }
             />
+
             <FloatingActionButton onPress={() => navigation.navigate('AddSong')} />
             <SortBottomSheet
                 visible={sortSheetVisible}

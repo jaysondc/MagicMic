@@ -69,8 +69,8 @@ export default function SongDetailsScreen({ route, navigation }) {
         loadTags();
     }, []);
 
-    const loadSongData = () => {
-        const songs = getSongs();
+    const loadSongData = async () => {
+        const songs = await getSongs();
         const foundSong = songs.find(s => s.id === songId);
         if (foundSong) {
             setSong(foundSong);
@@ -88,9 +88,10 @@ export default function SongDetailsScreen({ route, navigation }) {
         }
     };
 
-    const loadTags = () => {
-        setAllTags(getTags());
+    const loadTags = async () => {
+        setAllTags(await getTags());
     };
+
 
     const fetchLyrics = async (song) => {
         if (!song || !song.title || !song.artist) return;

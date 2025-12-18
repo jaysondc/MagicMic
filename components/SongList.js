@@ -1,6 +1,7 @@
+import React, { forwardRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
@@ -79,7 +80,7 @@ export const SongListItem = ({ item, onSongPress, playSong, loadingSongId, curre
     );
 };
 
-const SongList = ({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent }) => {
+const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent }, ref) => {
     const insets = useSafeAreaInsets();
     const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
 
@@ -102,10 +103,13 @@ const SongList = ({ songs, onSongPress, refreshing, onRefresh, ListHeaderCompone
     };
 
     return (
-        <FlatList
+        <FlashList
+            ref={ref}
             data={songs}
             renderItem={renderItem}
+            extraData={{ isPlaying, currentUri, loadingSongId }}
             keyExtractor={(item) => item.id.toString()}
+            estimatedItemSize={SONG_ITEM_HEIGHT}
             ListEmptyComponent={
                 <View style={styles.empty}>
                     <Text style={styles.emptyText}>No songs found.</Text>
@@ -117,7 +121,10 @@ const SongList = ({ songs, onSongPress, refreshing, onRefresh, ListHeaderCompone
             ListHeaderComponent={ListHeaderComponent}
         />
     );
-};
+});
+
+
+
 
 const styles = StyleSheet.create({
     itemContainer: {

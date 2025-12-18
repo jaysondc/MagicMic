@@ -11,7 +11,7 @@ TODO List for Magic Mic
 - [X] Song Lyrics
 - [X] Song Preview
 - [X] Auto-populate tags
-- [ ] Roulette based on filters
+- [X] Roulette based on filters
 - [ ] Add Manually
 - [X] Sort song list by date added?
 - [X] Download lyrics when adding a song
