@@ -283,6 +283,7 @@ export default function HomeScreen({ navigation, route }) {
                         isRolling={isRolling}
                         onCollapse={() => setRouletteVisible(false)}
                         onRollComplete={() => setIsRolling(false)}
+                        onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
                     />
                 }
             />

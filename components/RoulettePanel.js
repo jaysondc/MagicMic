@@ -6,22 +6,31 @@ import { SongListItem, SONG_ITEM_HEIGHT } from './SongList';
 import { usePreview } from '../context/PreviewContext';
 import { useSongUpdates } from '../hooks/useSongUpdates';
 
-const ROULETTE_DURATION = 2000;
-const PULSE_DURATION = 1000;
+const ROULETTE_DURATION = 1500;
+const PULSE_DURATION = 750;
+const STAGGER_DELAY = 150;
+const REVEAL_DURATION = 350;
 
-export default function RoulettePanel({ visible, songs, isRolling, onCollapse, onRollComplete }) {
+export default function RoulettePanel({ visible, songs, isRolling, onCollapse, onRollComplete, onSongPress }) {
     const [displaySongs, setDisplaySongs] = useState([]);
 
     // Animation for the panel sliding/expanding
     const heightAnim = useRef(new Animated.Value(0)).current;
     const opacityAnim = useRef(new Animated.Value(0)).current;
 
+    // Per-slot reveal animations
+    const revealAnims = useRef([
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+    ]).current;
+
     // 3 separate pulse animations for offset effect
-    const pulseAnims = [
-        useRef(new Animated.Value(0)).current,
-        useRef(new Animated.Value(0)).current,
-        useRef(new Animated.Value(0)).current,
-    ];
+    const pulseAnims = useRef([
+        new Animated.Value(0),
+        new Animated.Value(0),
+        new Animated.Value(0),
+    ]).current;
 
     const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
     const { handlePreviewUrlUpdate, applyUpdates } = useSongUpdates();
@@ -43,44 +52,76 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
     }, [visible]);
 
     useEffect(() => {
-        if (isRolling) {
+        if (!isRolling) return;
+
+        let active = true;
+        let timer;
+        const loops = pulseAnims.map((anim, i) => {
+            return Animated.loop(
+                Animated.sequence([
+                    Animated.timing(anim, {
+                        toValue: 1,
+                        duration: PULSE_DURATION / 2,
+                        easing: Easing.inOut(Easing.quad),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(anim, {
+                        toValue: 0,
+                        duration: PULSE_DURATION / 2,
+                        easing: Easing.inOut(Easing.quad),
+                        useNativeDriver: true,
+                    })
+                ])
+            );
+        });
+
+        // Staggered fade out of existing songs if any
+        const fadeOuts = revealAnims.map(anim =>
+            Animated.timing(anim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+            })
+        );
+
+        Animated.stagger(STAGGER_DELAY, fadeOuts).start(() => {
+            if (!active) return;
             setDisplaySongs([]);
 
-            // Create pulsing animations with delays
-            const loops = pulseAnims.map((anim, i) => {
-                return Animated.loop(
-                    Animated.sequence([
-                        Animated.timing(anim, {
-                            toValue: 1,
-                            duration: PULSE_DURATION / 2,
-                            easing: Easing.inOut(Easing.quad),
-                            useNativeDriver: true,
-                        }),
-                        Animated.timing(anim, {
-                            toValue: 0,
-                            duration: PULSE_DURATION / 2,
-                            easing: Easing.inOut(Easing.quad),
-                            useNativeDriver: true,
-                        })
-                    ])
-                );
-            });
+            // Start the rolling animation after fade out
+            Animated.stagger(STAGGER_DELAY, loops).start();
 
-            Animated.stagger(150, loops).start();
+            timer = setTimeout(() => {
+                if (!active) return;
 
-            const timer = setTimeout(() => {
                 loops.forEach(l => l.stop());
                 pulseAnims.forEach(a => a.setValue(0));
+
+                // Force all to 0 before swapping songs to prevent flashing
+                revealAnims.forEach(a => a.setValue(0));
                 setDisplaySongs(songs);
+
+                const fadeIns = revealAnims.map(anim =>
+                    Animated.timing(anim, {
+                        toValue: 1,
+                        duration: REVEAL_DURATION,
+                        useNativeDriver: true,
+                    })
+                );
+
+                Animated.stagger(STAGGER_DELAY, fadeIns).start();
+
                 onRollComplete && onRollComplete();
             }, ROULETTE_DURATION);
+        });
 
-            return () => {
-                clearTimeout(timer);
-                loops.forEach(l => l.stop());
-            };
-        }
-    }, [isRolling, songs]);
+        return () => {
+            active = false;
+            if (timer) clearTimeout(timer);
+            loops.forEach(l => l.stop());
+            pulseAnims.forEach(a => a.setValue(0));
+        };
+    }, [isRolling]);
 
     const maxHeight = 435; // Increased to prevent clipping
 
@@ -117,9 +158,13 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
                 }),
                 opacity: opacityAnim,
                 overflow: 'hidden',
-                marginTop: heightAnim.interpolate({
+                marginBottom: heightAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0, theme.spacing.m],
+                }),
+                borderWidth: heightAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1],
                 }),
             }
         ]}>
@@ -135,14 +180,18 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
                     return (
                         <View key={i} style={styles.slot}>
                             {song ? (
-                                <SongListItem
-                                    item={song}
-                                    playSong={playSong}
-                                    loadingSongId={loadingSongId}
-                                    currentUri={currentUri}
-                                    isPlaying={isPlaying}
-                                    onPreviewUrlUpdate={handlePreviewUrlUpdate}
-                                />
+                                <Animated.View style={{ opacity: revealAnims[i] }}>
+                                    <SongListItem
+                                        item={song}
+                                        playSong={playSong}
+                                        loadingSongId={loadingSongId}
+                                        currentUri={currentUri}
+                                        isPlaying={isPlaying}
+                                        onPreviewUrlUpdate={handlePreviewUrlUpdate}
+                                        onSongPress={onSongPress}
+                                        style={styles.rouletteItem}
+                                    />
+                                </Animated.View>
                             ) : renderPulseSlot(i)}
                         </View>
                     );
@@ -165,8 +214,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.surface,
         marginHorizontal: theme.spacing.m,
         borderRadius: theme.borderRadius.m,
-        marginBottom: theme.spacing.m,
-        borderWidth: 1,
         borderColor: theme.colors.secondary + '44',
         elevation: 5,
         shadowColor: theme.colors.secondary,
