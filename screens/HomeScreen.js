@@ -24,6 +24,7 @@ import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import FloatingActionButton from '../components/FloatingActionButton';
 import SortBottomSheet from '../components/SortBottomSheet';
+import RoulettePanel from '../components/RoulettePanel';
 
 
 import { Ionicons } from '@expo/vector-icons';
@@ -48,6 +49,11 @@ export default function HomeScreen({ navigation, route }) {
     const [sortBy, setSortBy] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
     const [sortSheetVisible, setSortSheetVisible] = useState(false);
+
+    // Roulette State
+    const [rouletteVisible, setRouletteVisible] = useState(false);
+    const [rouletteSongs, setRouletteSongs] = useState([]);
+    const [isRolling, setIsRolling] = useState(false);
 
     useEffect(() => {
         initDatabase();
@@ -170,6 +176,27 @@ export default function HomeScreen({ navigation, route }) {
         }
     };
 
+    const handleRollRoulette = () => {
+        if (filteredSongs.length === 0) {
+            showToast({ message: "No songs match current filters" });
+            return;
+        }
+        setIsRolling(true);
+        setRouletteVisible(true);
+
+        // Randomly pick 3 (or fewer if not enough)
+        const shuffled = [...filteredSongs].sort(() => 0.5 - Math.random());
+        setRouletteSongs(shuffled.slice(0, 3));
+    };
+
+    const handleRouletteIconPress = () => {
+        if (rouletteVisible) {
+            setRouletteVisible(false);
+        } else {
+            handleRollRoulette();
+        }
+    };
+
     const handleSortPress = () => {
         setSortSheetVisible(true);
     };
@@ -209,6 +236,9 @@ export default function HomeScreen({ navigation, route }) {
             <View style={styles.header}>
                 <Text style={styles.title}>Magic Mic</Text>
                 <View style={styles.headerButtons}>
+                    <TouchableOpacity onPress={handleRouletteIconPress} style={styles.headerButton}>
+                        <Ionicons name={rouletteVisible ? "shuffle" : "shuffle-outline"} size={24} color={rouletteVisible ? theme.colors.secondary : theme.colors.text} />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
                         <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
                     </TouchableOpacity>
@@ -244,6 +274,17 @@ export default function HomeScreen({ navigation, route }) {
             <SongList
                 songs={filteredSongs}
                 onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
+                refreshing={isRolling}
+                onRefresh={handleRollRoulette}
+                ListHeaderComponent={
+                    <RoulettePanel
+                        visible={rouletteVisible}
+                        songs={rouletteSongs}
+                        isRolling={isRolling}
+                        onCollapse={() => setRouletteVisible(false)}
+                        onRollComplete={() => setIsRolling(false)}
+                    />
+                }
             />
             <FloatingActionButton onPress={() => navigation.navigate('AddSong')} />
             <SortBottomSheet
@@ -275,6 +316,10 @@ const styles = StyleSheet.create({
     },
     headerButtons: {
         flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerButton: {
+        marginRight: theme.spacing.m,
     },
     buttonSpacer: {
         width: 10,

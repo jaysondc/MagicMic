@@ -5,8 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
 import { usePreview } from '../context/PreviewContext';
+import { useSongUpdates } from '../hooks/useSongUpdates';
 
-const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+export const SONG_ITEM_HEIGHT = 108;
+
+export const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
 
     // Derived state
     const isCurrent = currentUri === item.audio_sample_url;
@@ -76,32 +79,14 @@ const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, 
     );
 };
 
-const SongList = ({ songs, onSongPress }) => {
+const SongList = ({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent }) => {
     const insets = useSafeAreaInsets();
     const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
 
-    // Local override for songs that just got a URL fetched.
-    // This allows immediate feedback without waiting for parent refresh.
-    // Map of songId -> { audio_sample_url, album_cover_url }
-    const [localUpdates, setLocalUpdates] = useState({});
-
-    const handlePreviewUrlUpdate = (id, url, artworkUrl, durationMs) => {
-        setLocalUpdates(prev => ({
-            ...prev,
-            [id]: {
-                audio_sample_url: url,
-                album_cover_url: artworkUrl,
-                ...(durationMs && { duration_ms: durationMs })
-            }
-        }));
-    };
+    const { handlePreviewUrlUpdate, applyUpdates } = useSongUpdates();
 
     const renderItem = ({ item }) => {
-        // Merge local update if exists
-        const updates = localUpdates[item.id];
-        const displayItem = updates
-            ? { ...item, ...updates }
-            : item;
+        const displayItem = applyUpdates([item])[0];
 
         return (
             <SongListItem
@@ -127,6 +112,9 @@ const SongList = ({ songs, onSongPress }) => {
                 </View>
             }
             contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            ListHeaderComponent={ListHeaderComponent}
         />
     );
 };
