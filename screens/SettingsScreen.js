@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Button } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Button, InteractionManager } from 'react-native';
 import { theme } from '../lib/theme';
 import { BackupService } from '../services/BackupService';
 import { TouchableOpacity } from 'react-native-gesture-handler';
@@ -68,19 +68,25 @@ export default function SettingsScreen({ navigation }) {
                 {
                     text: 'Seed',
                     style: 'destructive',
-                    onPress: () => {
+                    onPress: async () => {
+                        setIsLoading(true);
                         try {
-                            resetDatabase();
-                            seedDatabase(seedData);
+                            await resetDatabase();
+                            await seedDatabase(seedData);
                             showToast({ message: 'Database seeded successfully!', type: 'success' });
-                            navigation.dispatch(
-                                CommonActions.reset({
-                                    index: 0,
-                                    routes: [{ name: 'Home', params: { refresh: Date.now() } }],
-                                })
-                            );
+
+                            InteractionManager.runAfterInteractions(() => {
+                                navigation.dispatch(
+                                    CommonActions.reset({
+                                        index: 0,
+                                        routes: [{ name: 'Home', params: { refresh: Date.now() } }],
+                                    })
+                                );
+                            });
                         } catch (error) {
                             showToast({ message: 'Error seeding database', type: 'error' });
+                        } finally {
+                            setIsLoading(false);
                         }
                     }
                 }

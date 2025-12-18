@@ -85,8 +85,11 @@ export default function HomeScreen({ navigation, route }) {
     }, [route.params?.refresh]);
 
     const loadData = async () => {
-        await Promise.all([loadSongs(), loadTags()]);
+        InteractionManager.runAfterInteractions(async () => {
+            await Promise.all([loadSongs(), loadTags()]);
+        });
     };
+
 
     const loadSongs = async () => {
         try {
@@ -135,11 +138,12 @@ export default function HomeScreen({ navigation, route }) {
         if (!tagToDelete) return;
 
         // Backup links before deleting
-        const linkedSongIds = getSongIdsForTag(tagId);
+        const linkedSongIds = await getSongIdsForTag(tagId);
         const wasSelected = selectedTags.includes(tagId);
 
-        deleteTag(tagId);
+        await deleteTag(tagId);
         await loadData();
+
 
 
         // Also remove from selected if it was selected
@@ -150,16 +154,16 @@ export default function HomeScreen({ navigation, route }) {
         showToast({
             message: `Deleted "${tagToDelete.name}"`,
             actionLabel: 'Undo',
-            onAction: () => {
+            onAction: async () => {
                 // Restore tag
-                const newTagId = addTag(tagToDelete.name, tagToDelete.color);
+                const newTagId = await addTag(tagToDelete.name, tagToDelete.color);
 
                 // Restore links
-                linkedSongIds.forEach(songId => {
-                    linkTagToSong(songId, newTagId);
-                });
+                for (const songId of linkedSongIds) {
+                    await linkTagToSong(songId, newTagId);
+                }
 
-                loadData();
+                await loadData();
 
                 // Restore selection if it was selected
                 if (wasSelected) {
@@ -169,6 +173,7 @@ export default function HomeScreen({ navigation, route }) {
                 showToast({ message: 'Tag restored' });
             }
         });
+
     };
 
     // Removed handleSeed from here as it moved to Settings

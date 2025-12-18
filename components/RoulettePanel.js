@@ -21,23 +21,29 @@ const PULSE_DURATION = 800;
 const STAGGER_DELAY = 150;
 const REVEAL_DURATION = 400;
 
-const RouletteSlot = ({ index, song, pulseValue, revealOpacity, props }) => {
+const RouletteSlot = ({ song, pulseValue, revealOpacity, props }) => {
     const pulseStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(pulseValue.value, [0, 1], [0.05, 0.3]),
+        opacity: song ? 0 : interpolate(pulseValue.value, [0, 1], [0.1, 1]),
         transform: [{ scale: interpolate(pulseValue.value, [0, 1], [0.98, 1.02]) }]
     }));
 
     const revealStyle = useAnimatedStyle(() => ({
         opacity: revealOpacity.value,
-        transform: [{ translateY: interpolate(revealOpacity.value, [0, 1], [10, 0]) }]
+        transform: [{ translateY: interpolate(revealOpacity.value, [0, 1], [-10, 0]) }]
     }));
 
     const { playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate, onSongPress } = props;
 
     return (
-        <View key={index} style={styles.slot}>
-            {song ? (
-                <Animated.View style={revealStyle}>
+        <View style={styles.slot}>
+            {/* The Blank/Rolling Slot (hidden when song revealed) */}
+            <Animated.View style={[styles.blankSlot, pulseStyle]}>
+                <View style={styles.shimmer} />
+            </Animated.View>
+
+            {/* The Reveal Slot (only shows when song exists) */}
+            {song && (
+                <Animated.View style={[styles.songWrapper, revealStyle]}>
                     <SongListItem
                         item={song}
                         playSong={playSong}
@@ -48,14 +54,11 @@ const RouletteSlot = ({ index, song, pulseValue, revealOpacity, props }) => {
                         onSongPress={onSongPress}
                     />
                 </Animated.View>
-            ) : (
-                <Animated.View style={[styles.blankSlot, pulseStyle]}>
-                    <View style={styles.shimmer} />
-                </Animated.View>
             )}
         </View>
     );
 };
+
 
 export default function RoulettePanel({ visible, songs, isRolling, onCollapse, onRollComplete, onSongPress }) {
     const [displaySongs, setDisplaySongs] = useState([]);
@@ -97,7 +100,10 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         });
 
         const timer = setTimeout(() => {
-            slotPulses.forEach(p => p.value = withTiming(0, { duration: 200 }));
+            // Stop pulses and ensure reveal values are at zero
+            slotPulses.forEach(p => p.value = withTiming(0, { duration: 150 }));
+            revealOpacities.forEach(o => o.value = 0);
+
             setDisplaySongs(songs || []);
 
             requestAnimationFrame(() => {
@@ -113,6 +119,7 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
                 }
             });
         }, ROULETTE_DURATION);
+
 
         return () => clearTimeout(timer);
     }, [isRolling]);
@@ -198,18 +205,25 @@ const styles = StyleSheet.create({
         marginLeft: 8,
     },
     content: {
-        paddingTop: theme.spacing.s,
+        paddingTop: 0,
     },
     slot: {
-        height: SONG_ITEM_HEIGHT + 8,
+        height: SONG_ITEM_HEIGHT + 12, // Match SongListItem vertical space
         justifyContent: 'center',
     },
     blankSlot: {
         height: SONG_ITEM_HEIGHT,
-        backgroundColor: theme.colors.secondary,
+        backgroundColor: theme.colors.secondary + '15',
         borderRadius: theme.borderRadius.m,
         marginHorizontal: theme.spacing.m,
     },
+    songWrapper: {
+        position: 'absolute',
+        top: 6,
+        left: 0,
+        right: 0,
+    },
+
     collapseButton: {
         alignItems: 'center',
         paddingVertical: theme.spacing.s,

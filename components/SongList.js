@@ -1,4 +1,5 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, memo } from 'react';
+
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 
 import { FlashList } from '@shopify/flash-list';
@@ -8,9 +9,10 @@ import { theme } from '../lib/theme';
 import { usePreview } from '../context/PreviewContext';
 import { useSongUpdates } from '../hooks/useSongUpdates';
 
+
 export const SONG_ITEM_HEIGHT = 108;
 
-export const SongListItem = ({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
 
     // Derived state
     const isCurrent = currentUri === item.audio_sample_url;
@@ -32,7 +34,6 @@ export const SongListItem = ({ item, onSongPress, playSong, loadingSongId, curre
                     <Image source={{ uri: item.album_cover_url }} style={styles.artwork} />
                 ) : (
                     <View style={[styles.artwork, styles.placeholderArtwork]}>
-                        <Ionicons name="musical-note" size={24} color={theme.colors.textSecondary} />
                     </View>
                 )}
 
@@ -78,7 +79,7 @@ export const SongListItem = ({ item, onSongPress, playSong, loadingSongId, curre
             </TouchableOpacity>
         </View>
     );
-};
+});
 
 const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent }, ref) => {
     const insets = useSafeAreaInsets();

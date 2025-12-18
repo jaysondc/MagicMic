@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
@@ -172,7 +172,7 @@ export default function SongDetailsScreen({ route, navigation }) {
         };
     });
 
-    const handleMarkAsSung = () => {
+    const handleMarkAsSung = async () => {
         scale.value = withSequence(
             withTiming(0.9, { duration: 100 }),
             withSpring(1, { damping: 50, stiffness: 500 })
@@ -186,11 +186,12 @@ export default function SongDetailsScreen({ route, navigation }) {
         const newCount = (song.sing_count || 0) + 1;
         const now = Date.now();
 
-        updateSong(songId, { sing_count: newCount, last_sung_date: now });
+        await updateSong(songId, { sing_count: newCount, last_sung_date: now });
         setSong(prev => ({ ...prev, sing_count: newCount, last_sung_date: now }));
     };
 
-    const handleToggleTag = (tagId) => {
+
+    const handleToggleTag = async (tagId) => {
         const isSelected = selectedTags.includes(tagId);
         const newSelectedTags = isSelected
             ? selectedTags.filter(id => id !== tagId)
@@ -199,10 +200,37 @@ export default function SongDetailsScreen({ route, navigation }) {
         setSelectedTags(newSelectedTags);
 
         if (isSelected) {
-            unlinkTagFromSong(songId, tagId);
+            await unlinkTagFromSong(songId, tagId);
         } else {
-            linkTagToSong(songId, tagId);
+            await linkTagToSong(songId, tagId);
         }
+    };
+
+    const handleTagPress = async (tagId) => {
+        if (!song) return;
+
+        const isSelected = selectedTags.includes(tagId);
+        if (isSelected) {
+            await unlinkTagFromSong(song.id, tagId);
+            setSelectedTags(prev => prev.filter(id => id !== tagId));
+        } else {
+            await linkTagToSong(song.id, tagId);
+            setSelectedTags(prev => [...prev, tagId]);
+        }
+        await loadSongData();
+    };
+
+    const handleAddTagName = async (name) => {
+        if (!song) return;
+
+        // Generate random neon color
+        const colors = ['#FF00FF', '#00FFFF', '#FFFF00', '#FF0000', '#00FF00', '#FFA500'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        const tagId = await addTag(name, color);
+        await linkTagToSong(song.id, tagId);
+        await loadTags();
+        await loadSongData();
     };
 
     const handlePlayPreview = async () => {
@@ -217,34 +245,67 @@ export default function SongDetailsScreen({ route, navigation }) {
         }
     };
 
-    const handleDelete = () => {
-        const songToRestore = { ...song, tags: selectedTags };
+    const handleDelete = async () => {
+        Alert.alert(
+            "Delete Song",
+            "Are you sure you want to delete this song?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        const songToRestore = { ...song, tags: selectedTags };
 
-        deleteSong(songId);
-        navigation.goBack();
+                        await deleteSong(songId);
+                        InteractionManager.runAfterInteractions(() => {
+                            navigation.goBack();
+                        });
 
-        showToast({
-            message: 'Song deleted',
-            type: 'info',
-            actionLabel: 'UNDO',
-            duration: 5000,
-            onAction: () => {
-                try {
-                    const newId = addSong(songToRestore.title, songToRestore.artist, {
-                        ...songToRestore
-                    });
+                        showToast({
+                            message: 'Song deleted',
+                            type: 'info',
+                            actionLabel: 'UNDO',
+                            duration: 5000,
+                            onAction: async () => {
+                                try {
+                                    const newId = await addSong(songToRestore.title, songToRestore.artist, {
+                                        ...songToRestore
+                                    });
 
-                    if (songToRestore.tags && songToRestore.tags.length > 0) {
-                        songToRestore.tags.forEach(tagId => linkTagToSong(newId, tagId));
+                                    if (songToRestore.tags && songToRestore.tags.length > 0) {
+                                        for (const tagId of songToRestore.tags) {
+                                            await linkTagToSong(newId, tagId);
+                                        }
+                                    }
+
+                                    navigation.navigate('Home', { refresh: Date.now() });
+                                    showToast({ message: 'Song restored!', type: 'success' });
+                                } catch (e) {
+                                    showToast({ message: 'Failed to restore song.', type: 'error' });
+                                }
+                            }
+                        });
                     }
-
-                    navigation.navigate('Home', { refresh: Date.now() });
-                    showToast({ message: 'Song restored!', type: 'success' });
-                } catch (e) {
-                    showToast({ message: 'Failed to restore song.', type: 'error' });
                 }
-            }
+            ]
+        );
+    };
+
+    const handleToggleStatus = async () => {
+        if (!song) return;
+        const newStatus = song.status === 'to_try' ? 'repertoire' : 'to_try';
+        await updateSong(song.id, { status: newStatus });
+        await loadSongData();
+    };
+
+    const handleIncrementSingCount = async () => {
+        if (!song) return;
+        await updateSong(song.id, {
+            sing_count: (song.sing_count || 0) + 1,
+            last_sung_date: Date.now()
         });
+        await loadSongData();
     };
 
     if (!song) {

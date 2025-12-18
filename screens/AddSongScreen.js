@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image, InteractionManager } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,12 +55,12 @@ export default function AddSongScreen({ navigation }) {
         }
     };
 
-    const handleAddSong = (item) => {
+    const handleAddSong = async (item) => {
         try {
             // Get higher quality artwork by replacing 100x100 with 600x600
             const highResArtwork = item.artworkUrl100?.replace('100x100bb', '600x600bb');
 
-            const newSongId = addSong(item.trackName, item.artistName, {
+            const newSongId = await addSong(item.trackName, item.artistName, {
                 album_cover_url: highResArtwork || item.artworkUrl100,
                 audio_sample_url: item.previewUrl,
                 duration_ms: item.trackTimeMillis
@@ -72,11 +72,15 @@ export default function AddSongScreen({ navigation }) {
                 actionLabel: 'Edit',
                 onAction: () => navigation.navigate('SongDetails', { songId: newSongId })
             });
-            navigation.goBack();
+
+            InteractionManager.runAfterInteractions(() => {
+                navigation.goBack();
+            });
         } catch (err) {
             showToast({ message: 'Error adding song', type: 'error' });
         }
     };
+
 
     const [previewSheetVisible, setPreviewSheetVisible] = useState(false);
     const [previewSong, setPreviewSong] = useState(null);
