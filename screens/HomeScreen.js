@@ -28,6 +28,7 @@ import RoulettePanel from '../components/RoulettePanel';
 
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 export default function HomeScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();

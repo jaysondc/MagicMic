@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { theme } from '../lib/theme';
 import { SongListItem, SONG_ITEM_HEIGHT } from './SongList';
 import { usePreview } from '../context/PreviewContext';
@@ -99,6 +100,19 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
             ));
         });
 
+        // Dynamic Haptic Sequence: 3 Hard ticks at first pulse peaks, 3 Medium ticks at second pulse peaks
+        const hapticTimers = [
+            // Hard Ticks (Peak of first pulses)
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 225),
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 375),
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 525),
+
+            // Medium Ticks (Peak of second pulses)
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 850),
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 1000),
+            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), 1150),
+        ];
+
         const timer = setTimeout(() => {
             // Stop pulses and ensure reveal values are at zero
             slotPulses.forEach(p => p.value = withTiming(0, { duration: 150 }));
@@ -112,6 +126,10 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
                         duration: REVEAL_DURATION,
                         easing: Easing.out(Easing.quad)
                     }));
+                    // Trigger soft haptic when each result appears
+                    setTimeout(() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                    }, i * STAGGER_DELAY);
                 });
 
                 if (onRollComplete) {
@@ -121,7 +139,10 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         }, ROULETTE_DURATION);
 
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            hapticTimers.forEach(clearTimeout);
+        };
     }, [isRolling]);
 
     const maxHeight = 435;
@@ -149,7 +170,7 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         <Animated.View style={[styles.container, panelStyle]}>
             <View style={styles.header}>
                 <Ionicons name="shuffle" size={18} color={theme.colors.secondary} />
-                <Text style={styles.headerTitle}>ROULETTE SUGGESTIONS</Text>
+                <Text style={styles.headerTitle}>SONG ROULETTE</Text>
             </View>
 
             <View style={styles.content}>
