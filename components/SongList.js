@@ -11,9 +11,14 @@ import { usePreview } from '../context/PreviewContext';
 import { useSongUpdates } from '../hooks/useSongUpdates';
 
 
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, interpolateColor } from 'react-native-reanimated';
+
 export const SONG_ITEM_HEIGHT = 108;
 
+const AnimatedPressable = Animated.createAnimatedComponent(TouchableOpacity);
+
 export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+    const pressedValue = useSharedValue(0);
 
     // Derived state
     const isCurrent = currentUri === item.audio_sample_url;
@@ -25,39 +30,60 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
         playSong(item, onPreviewUrlUpdate);
     };
 
+    const handlePressIn = () => {
+        pressedValue.value = withTiming(1, { duration: 100 });
+    };
+
+    const handlePressOut = () => {
+        pressedValue.value = withTiming(0, { duration: 150 });
+    };
+
+    const cardAnimatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(
+            pressedValue.value,
+            [0, 1],
+            [theme.colors.surface, theme.colors.border]
+        )
+    }));
+
     return (
-        <View style={styles.itemContainer}>
+        <Animated.View style={[styles.itemContainer, cardAnimatedStyle]}>
             <TouchableOpacity
                 style={styles.artworkContainer}
                 onPress={handlePlayPress}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
             >
-                {item.album_cover_url ? (
-                    <Image source={{ uri: item.album_cover_url }} style={styles.artwork} />
-                ) : (
-                    <View style={[styles.artwork, styles.placeholderArtwork]}>
-                    </View>
-                )}
-
-                <View style={styles.playOverlay}>
-                    {isLoading ? (
-                        <ActivityIndicator size="small" color="#fff" />
+                <View style={styles.artworkWrapper}>
+                    {item.album_cover_url ? (
+                        <Image source={{ uri: item.album_cover_url }} style={styles.artwork} />
                     ) : (
-                        <Ionicons
-                            name={isThisPlaying ? "pause" : "play"}
-                            size={20}
-                            color="#fff"
-                        />
+                        <View style={[styles.artwork, styles.placeholderArtwork]}>
+                        </View>
                     )}
+
+                    <View style={styles.playOverlay}>
+                        {isLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Ionicons
+                                name={isThisPlaying ? "pause" : "play"}
+                                size={20}
+                            color="#fff"
+                            />
+                        )}
+                    </View>
                 </View>
             </TouchableOpacity>
 
             <TouchableOpacity
                 style={styles.info}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
                 onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
                     onSongPress && onSongPress(item);
                 }}
+                activeOpacity={1}
             >
                 <Text style={styles.title}>{item.title}</Text>
                 <View style={styles.artistRow}>
@@ -82,7 +108,7 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
                     </View>
                 )}
             </TouchableOpacity>
-        </View>
+        </Animated.View>
     );
 });
 
@@ -137,8 +163,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: theme.spacing.m,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
         backgroundColor: theme.colors.surface,
         marginHorizontal: theme.spacing.m,
         marginBottom: theme.spacing.s,
@@ -147,6 +173,10 @@ const styles = StyleSheet.create({
     artworkContainer: {
         position: 'relative',
         marginRight: theme.spacing.m,
+    },
+    artworkWrapper: {
+        borderRadius: theme.borderRadius.s,
+        overflow: 'hidden',
     },
     artwork: {
         width: 64,

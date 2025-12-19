@@ -155,7 +155,7 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         }
     }, [songs]);
 
-    const maxHeight = 435;
+    const maxHeight = 445;
 
     const panelStyle = useAnimatedStyle(() => ({
         height: interpolate(panelProgress.value, [0, 1], [0, maxHeight]),
@@ -237,6 +237,7 @@ const styles = StyleSheet.create({
     },
     content: {
         paddingTop: 0,
+        paddingBottom: theme.spacing.s,
     },
     slot: {
         height: SONG_ITEM_HEIGHT + 12, // Match SongListItem vertical space
@@ -254,7 +255,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
     },
-
     collapseButton: {
         alignItems: 'center',
         paddingVertical: theme.spacing.s,

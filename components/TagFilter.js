@@ -139,7 +139,7 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     );
 
     return (
-        <Animated.View layout={LinearTransition} style={styles.container}>
+        <Animated.View style={styles.container}>
             {expanded ? (
                 <View style={[styles.grid, styles.contentPadding]}>
                     {showSort && renderSortChip()}

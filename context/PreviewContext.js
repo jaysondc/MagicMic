@@ -100,24 +100,34 @@ export const PreviewProvider = ({ children }) => {
 
         try {
             // Case 1: Toggling the same song
-            if (currentUri === uri && soundRef.current) {
-                if (isPlaying) {
-                    setIsPlaying(false);
-                    await fadeOut(soundRef.current);
-                    if (myGen !== playbackGenRef.current) return;
-                    if (soundRef.current._loaded) await soundRef.current.pauseAsync();
-                } else {
-                    // Reset to start if it was finished/at end
-                    const status = await soundRef.current.getStatusAsync();
-                    if (status.positionMillis >= status.durationMillis) {
-                        await soundRef.current.setPositionAsync(0);
-                    }
+            if (currentUri === uri) {
+                if (isLoading) {
+                    // Toggled while still loading - cancel the load
+                    playbackGenRef.current++;
+                    setIsLoading(false);
+                    setCurrentUri(null);
+                    return;
+                }
 
-                    setIsPlaying(true);
-                    if (soundRef.current._loaded) {
-                        await soundRef.current.setVolumeAsync(0); // Ensure volume starts at 0 for fade in
-                        await soundRef.current.playAsync();
-                        fadeIn(soundRef.current);
+                if (soundRef.current) {
+                    if (isPlaying) {
+                        setIsPlaying(false);
+                        await fadeOut(soundRef.current);
+                        if (myGen !== playbackGenRef.current) return;
+                        if (soundRef.current._loaded) await soundRef.current.pauseAsync();
+                    } else {
+                        // Reset to start if it was finished/at end
+                        const status = await soundRef.current.getStatusAsync();
+                        if (status.positionMillis >= status.durationMillis) {
+                            await soundRef.current.setPositionAsync(0);
+                        }
+
+                        setIsPlaying(true);
+                        if (soundRef.current._loaded) {
+                            await soundRef.current.setVolumeAsync(0);
+                            await soundRef.current.playAsync();
+                            fadeIn(soundRef.current);
+                        }
                     }
                 }
                 return;

@@ -12,6 +12,77 @@ import { usePreview } from '../context/PreviewContext';
 import { useToast } from '../context/ToastContext';
 import PreviewBottomSheet from '../components/PreviewBottomSheet';
 
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolateColor } from 'react-native-reanimated';
+
+const SearchResultItem = React.memo(({ item, isThisPlaying, isThisLoading, playPreview, handlePreview, handleAddSong }) => {
+    const pressedValue = useSharedValue(0);
+
+    const handlePressIn = () => {
+        pressedValue.value = withTiming(1, { duration: 100 });
+    };
+
+    const handlePressOut = () => {
+        pressedValue.value = withTiming(0, { duration: 150 });
+    };
+
+    const cardAnimatedStyle = useAnimatedStyle(() => ({
+        backgroundColor: interpolateColor(
+            pressedValue.value,
+            [0, 1],
+            [theme.colors.surface, theme.colors.border]
+        ),
+    }));
+
+    return (
+        <Animated.View style={[styles.item, cardAnimatedStyle]}>
+            <TouchableOpacity
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                    playPreview(item.previewUrl);
+                }}
+                style={styles.artworkContainer}
+                activeOpacity={0.7}
+            >
+                <View style={styles.artworkWrapper}>
+                    <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
+                    <View style={styles.playOverlay}>
+                        {isThisLoading ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Ionicons
+                                name={isThisPlaying ? "pause" : "play"}
+                                size={20}
+                                color="#FFF"
+                            />
+                        )}
+                    </View>
+                </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.info}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                onPress={() => handlePreview(item)}
+                activeOpacity={1}
+            >
+                <Text style={styles.title} numberOfLines={1}>{item.trackName}</Text>
+                <Text style={styles.artist} numberOfLines={1}>{item.artistName}</Text>
+                <Text style={styles.album} numberOfLines={1}>{item.collectionName}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.actions}>
+                <TouchableOpacity onPress={() => handlePreview(item)} style={styles.actionButton}>
+                    <Ionicons name="document-text-outline" size={22} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleAddSong(item)} style={styles.actionButton}>
+                    <Ionicons name="add-circle" size={28} color={theme.colors.secondary} />
+                </TouchableOpacity>
+            </View>
+        </Animated.View>
+    );
+});
+
 export default function AddSongScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
@@ -93,54 +164,22 @@ export default function AddSongScreen({ navigation }) {
         setPreviewSheetVisible(true);
     };
 
-    const renderItem = ({ item }) => {
+    const renderItem = useCallback(({ item }) => {
         const isCurrent = currentUri === item.previewUrl;
         const isThisPlaying = isCurrent && isPlaying;
         const isThisLoading = isCurrent && isLoading;
 
         return (
-            <View style={styles.item}>
-                <TouchableOpacity
-                    onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-                        playPreview(item.previewUrl);
-                    }}
-                    style={styles.artworkContainer}
-                >
-                    <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
-                    <View style={styles.playOverlay}>
-                        {isThisLoading ? (
-                            <ActivityIndicator size="small" color="#fff" />
-                        ) : (
-                            <Ionicons
-                                name={isThisPlaying ? "pause" : "play"}
-                                size={20}
-                                color="#fff"
-                            />
-                        )}
-                    </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.info}
-                    onPress={() => handlePreview(item)}
-                >
-                    <Text style={styles.title}>{item.trackName}</Text>
-                    <Text style={styles.artist}>{item.artistName}</Text>
-                    <Text style={styles.album}>{item.collectionName}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.actions}>
-                    <TouchableOpacity onPress={() => handlePreview(item)} style={styles.actionButton}>
-                        <Ionicons name="document-text-outline" size={22} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleAddSong(item)} style={styles.actionButton}>
-                        <Ionicons name="add-circle" size={28} color={theme.colors.secondary} />
-                    </TouchableOpacity>
-                </View>
-            </View>
+            <SearchResultItem
+                item={item}
+                isThisPlaying={isThisPlaying}
+                isThisLoading={isThisLoading}
+                playPreview={playPreview}
+                handlePreview={handlePreview}
+                handleAddSong={handleAddSong}
+            />
         );
-    };
+    }, [currentUri, isPlaying, isLoading, playPreview, handlePreview, handleAddSong]);
 
     return (
         <SafeAreaView style={styles.container} edges={['left', 'right']}>
@@ -249,6 +288,10 @@ const styles = StyleSheet.create({
     artworkContainer: {
         position: 'relative',
         marginRight: theme.spacing.m,
+    },
+    artworkWrapper: {
+        borderRadius: theme.borderRadius.s,
+        overflow: 'hidden',
     },
     artwork: {
         width: 64,
