@@ -145,6 +145,16 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         };
     }, [isRolling]);
 
+    // Update displaySongs if the source songs prop changes (e.g. after a refresh on focus)
+    useEffect(() => {
+        if (songs && songs.length > 0 && displaySongs.length > 0 && !isRolling) {
+            setDisplaySongs(prev => prev.map(ds => {
+                const latest = songs.find(s => s.id === ds.id);
+                return latest || ds;
+            }));
+        }
+    }, [songs]);
+
     const maxHeight = 435;
 
     const panelStyle = useAnimatedStyle(() => ({

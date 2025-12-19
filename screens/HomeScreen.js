@@ -86,9 +86,7 @@ export default function HomeScreen({ navigation, route }) {
     }, [route.params?.refresh]);
 
     const loadData = async () => {
-        InteractionManager.runAfterInteractions(async () => {
-            await Promise.all([loadSongs(), loadTags()]);
-        });
+        await Promise.all([loadSongs(), loadTags()]);
     };
 
 
@@ -96,6 +94,15 @@ export default function HomeScreen({ navigation, route }) {
         try {
             const allSongs = await getSongs(searchQuery, sortBy, sortOrder);
             setSongs(allSongs);
+
+            // Keep roulette songs in sync if they exist
+            setRouletteSongs(prev => {
+                if (prev.length === 0) return prev;
+                return prev.map(rs => {
+                    const latest = allSongs.find(s => s.id === rs.id);
+                    return latest || rs;
+                });
+            });
         } catch (error) {
             console.error('Failed to load songs:', error);
         }
