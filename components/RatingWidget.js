@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useSharedValue, runOnJS } from 'react-native-reanimated';
 import { theme } from '../lib/theme';
@@ -12,6 +13,11 @@ const RatingWidget = ({ rating = 0, onRatingChange }) => {
     // Local state for drag preview, initialized with props
     const [displayRating, setDisplayRating] = useState(rating);
     const [containerWidth, setContainerWidth] = useState(0);
+    const lastHapticRating = useSharedValue(rating);
+
+    const triggerHaptic = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+    };
 
     useEffect(() => {
         setDisplayRating(rating);
@@ -26,6 +32,10 @@ const RatingWidget = ({ rating = 0, onRatingChange }) => {
                 const rawRating = percent * MAX_RATING;
                 // Snap to nearest 0.5
                 const snappedRating = Math.ceil(rawRating * 2) / 2;
+                if (snappedRating !== lastHapticRating.value) {
+                    lastHapticRating.value = snappedRating;
+                    runOnJS(triggerHaptic)();
+                }
                 runOnJS(setDisplayRating)(snappedRating);
             }
         })
@@ -41,6 +51,10 @@ const RatingWidget = ({ rating = 0, onRatingChange }) => {
                 const percent = x / containerWidth;
                 const rawRating = percent * MAX_RATING;
                 const snappedRating = Math.ceil(rawRating * 2) / 2;
+                if (snappedRating !== lastHapticRating.value) {
+                    lastHapticRating.value = snappedRating;
+                    runOnJS(triggerHaptic)();
+                }
                 runOnJS(setDisplayRating)(snappedRating);
             }
         })
@@ -51,11 +65,13 @@ const RatingWidget = ({ rating = 0, onRatingChange }) => {
     const composedGesture = Gesture.Simultaneous(handlePan, handleTap);
 
     const handleIncrement = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         const newRating = Math.min(MAX_RATING, rating + 0.5);
         onRatingChange(newRating);
     };
 
     const handleDecrement = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         const newRating = Math.max(0, rating - 0.5);
         onRatingChange(newRating);
     };

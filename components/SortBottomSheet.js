@@ -16,6 +16,7 @@ import Animated, {
     runOnJS
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { theme } from '../lib/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -53,6 +54,7 @@ const SortBottomSheet = ({ visible, onClose, currentSortBy, onSelectSort, safeBo
     };
 
     const handleSelect = (id) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         onSelectSort(id);
         closeSheet();
     };

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming, interpolate } from 'react-native-reanimated';
 
 import TagFilter from '../components/TagFilter';
@@ -173,6 +174,7 @@ export default function SongDetailsScreen({ route, navigation }) {
     });
 
     const handleMarkAsSung = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         scale.value = withSequence(
             withTiming(0.9, { duration: 100 }),
             withSpring(1, { damping: 50, stiffness: 500 })
@@ -234,6 +236,7 @@ export default function SongDetailsScreen({ route, navigation }) {
     };
 
     const handlePlayPreview = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         if (song?.audio_sample_url) {
             playPreview(song.audio_sample_url);
         } else if (!loadingMetadata) {
@@ -255,6 +258,7 @@ export default function SongDetailsScreen({ route, navigation }) {
                     text: "Delete",
                     style: "destructive",
                     onPress: async () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
                         const songToRestore = { ...song, tags: selectedTags };
 
                         await deleteSong(songId);
@@ -463,7 +467,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Text style={styles.sectionTitle}>Lyrics</Text>
-                            <TouchableOpacity onPress={() => setLyricsExpanded(!lyricsExpanded)}>
+                            <TouchableOpacity onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                                setLyricsExpanded(!lyricsExpanded);
+                            }}>
                                 <Ionicons
                                     name={lyricsExpanded ? "chevron-up" : "chevron-down"}
                                     size={24}
@@ -480,7 +487,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Metadata</Text>
-                        <TouchableOpacity onPress={() => setMetadataExpanded(!metadataExpanded)}>
+                        <TouchableOpacity onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                            setMetadataExpanded(!metadataExpanded);
+                        }}>
                             <Ionicons
                                 name={metadataExpanded ? "chevron-up" : "chevron-down"}
                                 size={24}
@@ -541,7 +551,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.actions}>
-                    <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                    <TouchableOpacity style={styles.deleteButton} onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                        handleDelete();
+                    }}>
                         <Ionicons name="trash-outline" size={20} color={theme.colors.error} style={{ marginRight: 8 }} />
                         <Text style={styles.deleteButtonText}>Delete Song</Text>
                     </TouchableOpacity>

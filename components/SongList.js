@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } fr
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { theme } from '../lib/theme';
 import { usePreview } from '../context/PreviewContext';
 import { useSongUpdates } from '../hooks/useSongUpdates';
@@ -20,6 +21,7 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
     const isLoading = loadingSongId === item.id;
 
     const handlePlayPress = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         playSong(item, onPreviewUrlUpdate);
     };
 
@@ -52,7 +54,10 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
 
             <TouchableOpacity
                 style={styles.info}
-                onPress={() => onSongPress && onSongPress(item)}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                    onSongPress && onSongPress(item);
+                }}
             >
                 <Text style={styles.title}>{item.title}</Text>
                 <View style={styles.artistRow}>

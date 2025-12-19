@@ -14,6 +14,7 @@ import Animated, { LinearTransition } from 'react-native-reanimated';
 import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 if (Platform.OS === 'android') {
     if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -27,6 +28,7 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     const [newTagName, setNewTagName] = useState('');
 
     const toggleExpand = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         setExpanded(!expanded);
     };
 
@@ -41,12 +43,14 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
         const color = colors[Math.floor(Math.random() * colors.length)];
 
         addTag(newTagName.trim(), color);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         setNewTagName('');
         setIsAdding(false);
         if (onTagsChanged) onTagsChanged();
     };
 
     const handleLongPress = (tag) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         if (!onDeleteTag) return;
 
         Alert.alert(
@@ -73,7 +77,10 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
                     { borderColor: tag.color },
                     isSelected && { backgroundColor: tag.color }
                 ]}
-                onPress={() => onToggleTag(tag.id)}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                    onToggleTag(tag.id);
+                }}
                 onLongPress={() => handleLongPress(tag)}
             >
                 <Text style={[
@@ -106,7 +113,10 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
         return (
             <TouchableOpacity
                 style={[styles.chip, styles.addChip]}
-                onPress={() => setIsAdding(true)}
+                onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                    setIsAdding(true);
+                }}
             >
                 <Text style={styles.addChipText}>+ Add</Text>
             </TouchableOpacity>
@@ -118,7 +128,10 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     const renderSortChip = () => (
         <TouchableOpacity
             style={[styles.sortChip, expanded && styles.sortChipExpanded]}
-            onPress={onSortPress}
+            onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                onSortPress();
+            }}
         >
             <Text style={styles.sortChipText}>{sortLabel || 'Sort'}</Text>
             <Ionicons name="filter" size={12} color={theme.colors.background} style={{ marginLeft: 4 }} />

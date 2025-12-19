@@ -3,6 +3,7 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Activity
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { theme } from '../lib/theme';
 import { addSong } from '../lib/database';
 import { searchItunes } from '../lib/itunes';
@@ -56,6 +57,7 @@ export default function AddSongScreen({ navigation }) {
     };
 
     const handleAddSong = async (item) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         try {
             // Get higher quality artwork by replacing 100x100 with 600x600
             const highResArtwork = item.artworkUrl100?.replace('100x100bb', '600x600bb');
@@ -86,6 +88,7 @@ export default function AddSongScreen({ navigation }) {
     const [previewSong, setPreviewSong] = useState(null);
 
     const handlePreview = (item) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         setPreviewSong(item);
         setPreviewSheetVisible(true);
     };
@@ -98,7 +101,10 @@ export default function AddSongScreen({ navigation }) {
         return (
             <View style={styles.item}>
                 <TouchableOpacity
-                    onPress={() => playPreview(item.previewUrl)}
+                    onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                        playPreview(item.previewUrl);
+                    }}
                     style={styles.artworkContainer}
                 >
                     <Image source={{ uri: item.artworkUrl60 }} style={styles.artwork} />
@@ -149,7 +155,10 @@ export default function AddSongScreen({ navigation }) {
                         autoFocus={true}
                     />
                     {query.length > 0 && (
-                        <TouchableOpacity onPress={() => setQuery('')} style={styles.clearButton}>
+                        <TouchableOpacity onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                            setQuery('');
+                        }} style={styles.clearButton}>
                             <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                     )}

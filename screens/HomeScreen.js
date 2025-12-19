@@ -130,6 +130,7 @@ export default function HomeScreen({ navigation, route }) {
             if (prev.includes(tagId)) {
                 return prev.filter(id => id !== tagId);
             }
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
             return [...prev, tagId];
         });
     };
@@ -141,7 +142,7 @@ export default function HomeScreen({ navigation, route }) {
         // Backup links before deleting
         const linkedSongIds = await getSongIdsForTag(tagId);
         const wasSelected = selectedTags.includes(tagId);
-
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         await deleteTag(tagId);
         await loadData();
 
@@ -192,6 +193,7 @@ export default function HomeScreen({ navigation, route }) {
                 setSortOrder('DESC');
             }
         }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
     };
 
     const handleRollRoulette = () => {
@@ -201,7 +203,6 @@ export default function HomeScreen({ navigation, route }) {
         }
         setIsRolling(true);
         setRouletteVisible(true);
-
         // Scroll to top when opening roulette
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
 
@@ -211,15 +212,12 @@ export default function HomeScreen({ navigation, route }) {
     };
 
     const handleRouletteIconPress = () => {
-        if (rouletteVisible) {
-            setRouletteVisible(false);
-        } else {
-            handleRollRoulette();
-        }
+        handleRollRoulette();
     };
 
 
     const handleSortPress = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         setSortSheetVisible(true);
     };
 
@@ -267,7 +265,10 @@ export default function HomeScreen({ navigation, route }) {
                     <TouchableOpacity onPress={handleRouletteIconPress} style={styles.headerButton}>
                         <Ionicons name={rouletteVisible ? "shuffle" : "shuffle-outline"} size={24} color={rouletteVisible ? theme.colors.secondary : theme.colors.text} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                    <TouchableOpacity onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                        navigation.navigate('Settings');
+                    }}>
                         <Ionicons name="settings-outline" size={24} color={theme.colors.text} />
                     </TouchableOpacity>
                 </View>
@@ -282,7 +283,10 @@ export default function HomeScreen({ navigation, route }) {
                         onChangeText={setSearchQuery}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                        <TouchableOpacity onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                            setSearchQuery('');
+                        }} style={styles.clearButton}>
                             <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
                         </TouchableOpacity>
                     )}
@@ -317,7 +321,10 @@ export default function HomeScreen({ navigation, route }) {
                 }
             />
 
-            <FloatingActionButton onPress={() => navigation.navigate('AddSong')} />
+            <FloatingActionButton onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                navigation.navigate('AddSong');
+            }} />
             <SortBottomSheet
                 visible={sortSheetVisible}
                 onClose={() => setSortSheetVisible(false)}

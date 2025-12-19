@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator, Button, InteractionMa
 import { theme } from '../lib/theme';
 import { BackupService } from '../services/BackupService';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 import { useToast } from '../context/ToastContext';
 import { resetDatabase, seedDatabase } from '../lib/database';
 import { seedData } from '../lib/seedData';
@@ -13,6 +14,7 @@ export default function SettingsScreen({ navigation }) {
     const { showToast } = useToast();
 
     const handleExport = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setIsLoading(true);
         try {
             await BackupService.exportData();
@@ -35,6 +37,7 @@ export default function SettingsScreen({ navigation }) {
                     text: 'Import & Overwrite',
                     style: 'destructive',
                     onPress: async () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                         setIsLoading(true);
                         try {
                             const success = await BackupService.importData();
@@ -69,6 +72,7 @@ export default function SettingsScreen({ navigation }) {
                     text: 'Seed',
                     style: 'destructive',
                     onPress: async () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                         setIsLoading(true);
                         try {
                             await resetDatabase();
