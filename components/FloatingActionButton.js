@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, Animated, Keyboard, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, Animated, Keyboard, Platform, Easing } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
@@ -15,6 +15,12 @@ const FloatingActionButton = ({ onPress }) => {
 
     const animation = useRef(new Animated.Value(0)).current;
 
+    const animationConfig = {
+        duration: 250,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: false // using false as it interacts with layout-related interpolation sometimes, though translateY is native-safe.
+    };
+
     useEffect(() => {
         let targetValue = 0;
 
@@ -22,12 +28,9 @@ const FloatingActionButton = ({ onPress }) => {
             targetValue = toastOffset;
         }
 
-        Animated.spring(animation, {
+        Animated.timing(animation, {
+            ...animationConfig,
             toValue: targetValue,
-            useNativeDriver: false, // false because we animate layout property 'bottom' (or we can use transform: translateY which allows native driver)
-            // transforming translateY is better for performance.
-            // Let's use translateY. 
-            // 0 means default position. negative means moving UP.
         }).start();
 
     }, [isToastVisible]);
@@ -40,29 +43,17 @@ const FloatingActionButton = ({ onPress }) => {
         const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
         const onShow = (e) => {
-            // If keyboard shows, we usually want to move it ABOVE the keyboard.
-            // But simpler might be to just let it sit, or hide it. 
-            // Request: "moves up and down based on ... keyboard position"
-            // Keyboard height e.endCoordinates.height
-
-            // We need to animate to (keyboardHeight - insets.bottom). 
-            // But 'animation' shared value is currently used for toast offset.
-            // We should sum them or simple take the max?
-            // If keyboard is open, toast is likely on top of keyboard? 
-            // React Native Toasts usually sit above keyboard if configured, but our custom toast is absolute bottom.
-            // Our Toast is bottom: 40.
-
-            Animated.spring(animation, {
+            Animated.timing(animation, {
+                ...animationConfig,
                 toValue: e.endCoordinates.height,
-                useNativeDriver: false
             }).start();
         };
 
         const onHide = () => {
             // Return to toast state
-            Animated.spring(animation, {
+            Animated.timing(animation, {
+                ...animationConfig,
                 toValue: isToastVisible ? toastOffset : 0,
-                useNativeDriver: false
             }).start();
         };
 

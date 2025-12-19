@@ -170,7 +170,7 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         <Animated.View style={[styles.container, panelStyle]}>
             <View style={styles.header}>
                 <Ionicons name="shuffle" size={18} color={theme.colors.secondary} />
-                <Text style={styles.headerTitle}>SONG ROULETTE</Text>
+                <Text style={styles.headerTitle}>KARAOKE ROULETTE</Text>
             </View>
 
             <View style={styles.content}>
