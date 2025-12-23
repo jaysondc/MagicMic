@@ -94,8 +94,13 @@ export default function SongDetailsScreen({ route, navigation }) {
     };
 
 
+    const [loadingLyrics, setLoadingLyrics] = useState(false);
+    const [lyricsError, setLyricsError] = useState(null);
+
     const fetchLyrics = async (song) => {
         if (!song || !song.title || !song.artist) return;
+        setLoadingLyrics(true);
+        setLyricsError(null);
         try {
             // Build URL with duration only if available
             let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(song.artist)}&track_name=${encodeURIComponent(song.title)}`;
@@ -111,10 +116,17 @@ export default function SongDetailsScreen({ route, navigation }) {
                 if (data.plainLyrics) {
                     updateSong(song.id, { lyrics: data.plainLyrics });
                     setSong(prev => ({ ...prev, lyrics: data.plainLyrics }));
+                } else {
+                    setLyricsError("Lyrics not found.");
                 }
+            } else {
+                setLyricsError("Failed to load lyrics.");
             }
         } catch (error) {
             console.log('Error fetching lyrics:', error);
+            setLyricsError("Network error fetching lyrics.");
+        } finally {
+            setLoadingLyrics(false);
         }
     };
 
@@ -463,26 +475,59 @@ export default function SongDetailsScreen({ route, navigation }) {
                     </View>
                 </View>
 
-                {song.lyrics && (
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Lyrics</Text>
-                            <TouchableOpacity onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-                                setLyricsExpanded(!lyricsExpanded);
-                            }}>
+                <View style={styles.section}>
+
+                    {loadingLyrics ? (
+                        <View style={styles.lyricsStatusContainer}>
+                            <ActivityIndicator size="small" color={theme.colors.secondary} />
+                            <Text style={styles.statusText}>Searching for lyrics...</Text>
+                        </View>
+                    ) : lyricsError ? (
+                        <View style={styles.lyricsStatusContainer}>
+                            <Ionicons name="alert-circle-outline" size={24} color={theme.colors.error} />
+                            <Text style={[styles.statusText, { color: theme.colors.error }]}>{lyricsError}</Text>
+                            <TouchableOpacity
+                                style={styles.retryButton}
+                                onPress={() => fetchLyrics(song)}
+                            >
+                                <Text style={styles.retryText}>Retry</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : song.lyrics ? (
+                        <View style={styles.lyricsContentContainer}>
+                            <Text style={styles.lyrics} numberOfLines={lyricsExpanded ? undefined : 8}>
+                                {song.lyrics}
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.expandButton}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                                    setLyricsExpanded(!lyricsExpanded);
+                                }}
+                            >
+                                <Text style={styles.expandButtonText}>
+                                    {lyricsExpanded ? "Show Less" : "Show More"}
+                                </Text>
                                 <Ionicons
                                     name={lyricsExpanded ? "chevron-up" : "chevron-down"}
-                                    size={24}
-                                    color={theme.colors.textSecondary}
+                                    size={16}
+                                    color={theme.colors.secondary}
                                 />
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.lyrics} numberOfLines={lyricsExpanded ? undefined : 10}>
-                            {song.lyrics}
-                        </Text>
-                    </View>
-                )}
+                    ) : (
+                        <View style={styles.lyricsStatusContainer}>
+                            <Ionicons name="search-outline" size={24} color={theme.colors.textSecondary} />
+                            <Text style={styles.statusText}>No lyrics found for this song.</Text>
+                            <TouchableOpacity
+                                style={styles.retryButton}
+                                onPress={() => fetchLyrics(song)}
+                            >
+                                <Text style={styles.retryText}>Search Again</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
 
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
@@ -660,7 +705,10 @@ const styles = StyleSheet.create({
     lyrics: {
         ...theme.textVariants.body,
         color: theme.colors.text,
-        lineHeight: 24,
+        lineHeight: 28,
+        fontSize: 16,
+        textAlign: 'center',
+        fontStyle: 'italic',
     },
     row: {
         flexDirection: 'row',
@@ -769,5 +817,51 @@ const styles = StyleSheet.create({
         color: theme.colors.error,
         fontSize: 16,
         fontWeight: '600',
-    }
+    },
+    lyricsStatusContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.m,
+        padding: theme.spacing.l,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    lyricsContentContainer: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.m,
+        padding: theme.spacing.m,
+        overflow: 'hidden',
+    },
+    expandButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: theme.spacing.s,
+        marginTop: theme.spacing.s,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border,
+    },
+    expandButtonText: {
+        color: theme.colors.secondary,
+        fontSize: 14,
+        fontWeight: '600',
+        marginRight: 4,
+    },
+    statusText: {
+        color: theme.colors.textSecondary,
+        fontSize: 14,
+        marginTop: theme.spacing.s,
+        textAlign: 'center',
+    },
+    retryButton: {
+        marginTop: theme.spacing.m,
+        paddingHorizontal: theme.spacing.m,
+        paddingVertical: theme.spacing.s,
+        backgroundColor: theme.colors.secondary,
+        borderRadius: theme.borderRadius.s,
+    },
+    retryText: {
+        color: theme.colors.background,
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
 });

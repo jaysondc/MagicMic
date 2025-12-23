@@ -25,12 +25,12 @@ TODO List for Magic Mic
 # Polish
 - [X] Remove Repertoire Tag
 - [X] Change Add Song button to FAB
-- [ ] Fix dim hold state
+- [X] Fix dim hold state
 - [X] Custom Dialog Style
 - [ ] Prevent Duplicate Entries
 - [X] Delete button style
 - [X] Move metadata to bottom
-- [ ] Loading state for lyrics
+- [X] Loading state for lyrics
 - [ ] Polish loading state for song search
 
 
