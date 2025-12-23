@@ -85,12 +85,10 @@ export default function HomeScreen({ navigation, route }) {
         }
     }, [route.params?.refresh]);
 
-    const loadData = async () => {
-        await Promise.all([loadSongs(), loadTags()]);
-    };
 
 
-    const loadSongs = async () => {
+
+    const loadSongs = useCallback(async () => {
         try {
             const allSongs = await getSongs(searchQuery, sortBy, sortOrder);
             setSongs(allSongs);
@@ -106,9 +104,9 @@ export default function HomeScreen({ navigation, route }) {
         } catch (error) {
             console.error('Failed to load songs:', error);
         }
-    };
+    }, [searchQuery, sortBy, sortOrder]);
 
-    const loadTags = async () => {
+    const loadTags = useCallback(async () => {
         try {
             const allTags = await getTags();
 
@@ -130,9 +128,13 @@ export default function HomeScreen({ navigation, route }) {
         } catch (error) {
             console.error('Failed to load tags:', error);
         }
-    };
+    }, []);
 
-    const handleToggleTag = (tagId) => {
+    const loadData = useCallback(async () => {
+        await Promise.all([loadSongs(), loadTags()]);
+    }, [loadSongs, loadTags]);
+
+    const handleToggleTag = useCallback((tagId) => {
         setSelectedTags(prev => {
             if (prev.includes(tagId)) {
                 return prev.filter(id => id !== tagId);
@@ -140,9 +142,9 @@ export default function HomeScreen({ navigation, route }) {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
             return [...prev, tagId];
         });
-    };
+    }, []);
 
-    const handleDeleteTag = async (tagId) => {
+    const handleDeleteTag = useCallback(async (tagId) => {
         const tagToDelete = tags.find(t => t.id === tagId);
         if (!tagToDelete) return;
 
@@ -152,8 +154,6 @@ export default function HomeScreen({ navigation, route }) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         await deleteTag(tagId);
         await loadData();
-
-
 
         // Also remove from selected if it was selected
         if (wasSelected) {
@@ -183,11 +183,22 @@ export default function HomeScreen({ navigation, route }) {
             }
         });
 
-    };
+    }, [tags, selectedTags, loadData, showToast]);
 
-    // Removed handleSeed from here as it moved to Settings
+    const listRef = useRef(null);
 
-    const handleSortSelect = (newSortBy) => {
+    // Filter songs by selected tags (OR logic)
+    const filteredSongs = useMemo(() => {
+        return selectedTags.length > 0
+            ? songs.filter(song =>
+                song.tags && selectedTags.some(selectedTagId =>
+                    song.tags.some(songTag => songTag.id === selectedTagId)
+                )
+            )
+            : songs;
+    }, [songs, selectedTags]);
+
+    const handleSortSelect = useCallback((newSortBy) => {
         if (sortBy === newSortBy) {
             // Toggle order
             setSortOrder(prev => prev === 'ASC' ? 'DESC' : 'ASC');
@@ -201,9 +212,10 @@ export default function HomeScreen({ navigation, route }) {
             }
         }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-    };
+    }, [sortBy]);
 
-    const handleRollRoulette = () => {
+
+    const handleRollRoulette = useCallback(() => {
         if (filteredSongs.length === 0) {
             showToast({ message: "No songs match current filters" });
             return;
@@ -216,17 +228,17 @@ export default function HomeScreen({ navigation, route }) {
         // Randomly pick 3 (or fewer if not enough)
         const shuffled = [...filteredSongs].sort(() => 0.5 - Math.random());
         setRouletteSongs(shuffled.slice(0, 3));
-    };
+    }, [filteredSongs, showToast]);
 
-    const handleRouletteIconPress = () => {
+    const handleRouletteIconPress = useCallback(() => {
         handleRollRoulette();
-    };
+    }, [handleRollRoulette]);
 
 
-    const handleSortPress = () => {
+    const handleSortPress = useCallback(() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         setSortSheetVisible(true);
-    };
+    }, []);
 
     const getSortLabel = () => {
         const labels = {
@@ -242,18 +254,10 @@ export default function HomeScreen({ navigation, route }) {
         return `${labels[sortBy] || 'Sort'} ${arrow}`;
     };
 
-    const listRef = useRef(null);
 
-    // Filter songs by selected tags (OR logic)
-    const filteredSongs = useMemo(() => {
-        return selectedTags.length > 0
-            ? songs.filter(song =>
-                song.tags && selectedTags.some(selectedTagId =>
-                    song.tags.some(songTag => songTag.id === selectedTagId)
-                )
-            )
-            : songs;
-    }, [songs, selectedTags]);
+    const handleSongPress = useCallback((song) => {
+        navigation.navigate('SongDetails', { songId: song.id });
+    }, [navigation]);
 
 
     // Memoized tags with selected ones first (in selection order)
@@ -313,7 +317,7 @@ export default function HomeScreen({ navigation, route }) {
             <SongList
                 ref={listRef}
                 songs={filteredSongs}
-                onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
+                onSongPress={handleSongPress}
                 refreshing={isRolling}
                 onRefresh={handleRollRoulette}
                 ListHeaderComponent={
@@ -323,7 +327,7 @@ export default function HomeScreen({ navigation, route }) {
                         isRolling={isRolling}
                         onCollapse={() => setRouletteVisible(false)}
                         onRollComplete={() => setIsRolling(false)}
-                        onSongPress={(song) => navigation.navigate('SongDetails', { songId: song.id })}
+                        onSongPress={handleSongPress}
                     />
                 }
             />

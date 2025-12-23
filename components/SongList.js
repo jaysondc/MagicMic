@@ -1,4 +1,4 @@
-import React, { forwardRef, memo } from 'react';
+import React, { forwardRef, memo, useCallback, useMemo } from 'react';
 
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 
@@ -17,17 +17,21 @@ export const SONG_ITEM_HEIGHT = 108;
 
 const AnimatedPressable = Animated.createAnimatedComponent(TouchableOpacity);
 
-export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+export const SongListItem = memo(({ item, updates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
     const pressedValue = useSharedValue(0);
 
+    const displayItem = useMemo(() => {
+        return updates ? { ...item, ...updates } : item;
+    }, [item, updates]);
+
     // Derived state
-    const isCurrent = currentUri === item.audio_sample_url;
+    const isCurrent = currentUri === displayItem.audio_sample_url;
     const isThisPlaying = isCurrent && isPlaying;
-    const isLoading = loadingSongId === item.id;
+    const isLoading = loadingSongId === displayItem.id;
 
     const handlePlayPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-        playSong(item, onPreviewUrlUpdate);
+        playSong(displayItem, onPreviewUrlUpdate);
     };
 
     const handlePressIn = () => {
@@ -54,8 +58,8 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
                 activeOpacity={0.7}
             >
                 <View style={styles.artworkWrapper}>
-                    {item.album_cover_url ? (
-                        <Image source={{ uri: item.album_cover_url }} style={styles.artwork} />
+                    {displayItem.album_cover_url ? (
+                        <Image source={{ uri: displayItem.album_cover_url }} style={styles.artwork} />
                     ) : (
                         <View style={[styles.artwork, styles.placeholderArtwork]}>
                         </View>
@@ -68,7 +72,7 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
                             <Ionicons
                                 name={isThisPlaying ? "pause" : "play"}
                                 size={20}
-                            color="#fff"
+                                color="#fff"
                             />
                         )}
                     </View>
@@ -81,26 +85,26 @@ export const SongListItem = memo(({ item, onSongPress, playSong, loadingSongId, 
                 onPressOut={handlePressOut}
                 onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
-                    onSongPress && onSongPress(item);
+                    onSongPress && onSongPress(displayItem);
                 }}
                 activeOpacity={1}
             >
-                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.title}>{displayItem.title}</Text>
                 <View style={styles.artistRow}>
-                    <Text style={styles.artist}>{item.artist}</Text>
-                    {item.duration_ms && (
+                    <Text style={styles.artist}>{displayItem.artist}</Text>
+                    {displayItem.duration_ms && (
                         <View style={styles.durationContainer}>
                             <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} style={styles.durationIcon} />
                             <Text style={styles.artist}>
-                                {Math.floor(item.duration_ms / 60000)}:{((item.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}
+                                {Math.floor(displayItem.duration_ms / 60000)}:{((displayItem.duration_ms % 60000) / 1000).toFixed(0).padStart(2, '0')}
                             </Text>
                         </View>
                     )}
                 </View>
 
-                {item.tags && item.tags.length > 0 && (
+                {displayItem.tags && displayItem.tags.length > 0 && (
                     <View style={styles.tagsContainer}>
-                        {item.tags.map(tag => (
+                        {displayItem.tags.map(tag => (
                             <View key={tag.id} style={[styles.tagChip, { borderColor: tag.color }]}>
                                 <Text style={[styles.tagText, { color: tag.color }]}>{tag.name}</Text>
                             </View>
@@ -116,14 +120,14 @@ const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHe
     const insets = useSafeAreaInsets();
     const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
 
-    const { handlePreviewUrlUpdate, applyUpdates } = useSongUpdates();
+    const { handlePreviewUrlUpdate, localUpdates } = useSongUpdates();
 
-    const renderItem = ({ item }) => {
-        const displayItem = applyUpdates([item])[0];
-
+    const renderItem = useCallback(({ item }) => {
+        const updates = localUpdates[item.id];
         return (
             <SongListItem
-                item={displayItem}
+                item={item}
+                updates={updates}
                 onSongPress={onSongPress}
                 playSong={playSong}
                 loadingSongId={loadingSongId}
@@ -132,14 +136,14 @@ const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHe
                 onPreviewUrlUpdate={handlePreviewUrlUpdate}
             />
         );
-    };
+    }, [localUpdates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate]);
 
     return (
         <FlashList
             ref={ref}
             data={songs}
             renderItem={renderItem}
-            extraData={{ isPlaying, currentUri, loadingSongId }}
+            extraData={{ isPlaying, currentUri, loadingSongId, localUpdates }}
             keyExtractor={(item) => item.id.toString()}
             estimatedItemSize={SONG_ITEM_HEIGHT}
             ListEmptyComponent={

@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useEffect, useContext, useRef } from 'react';
+import React, { createContext, useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { Audio } from 'expo-av';
 import { findSongMetadata } from '../lib/itunes';
 import { updateSong } from '../lib/database';
@@ -93,7 +93,7 @@ export const PreviewProvider = ({ children }) => {
 
     const playbackGenRef = useRef(0);
 
-    const playPreview = async (uri) => {
+    const playPreview = useCallback(async (uri) => {
         if (!uri) return;
 
         const myGen = ++playbackGenRef.current;
@@ -180,9 +180,9 @@ export const PreviewProvider = ({ children }) => {
                 setCurrentUri(null);
             }
         }
-    };
+    }, [currentUri, isPlaying, isLoading]); // dependencies
 
-    const fetchLyrics = async (title, artist, durationMs) => {
+    const fetchLyrics = useCallback(async (title, artist, durationMs) => {
         if (!title || !artist) return null;
 
         try {
@@ -202,11 +202,48 @@ export const PreviewProvider = ({ children }) => {
             console.log('Error fetching lyrics in context:', error);
         }
         return null;
-    };
+    }, []);
 
-    const playSong = async (song, onUrlFound) => {
+    const fetchMissingMetadata = useCallback(async (song, onUrlFound) => {
+        try {
+            const metadata = await findSongMetadata(song.title, song.artist);
+
+            if (metadata) {
+                const updates = {};
+
+                // Save duration if found and not already present
+                if (metadata.durationMs && !song.duration_ms) {
+                    updates.duration_ms = metadata.durationMs;
+                    console.log('Saving duration (background):', metadata.durationMs);
+                }
+
+                // Fetch lyrics in parallel
+                if (!song.lyrics) {
+                    fetchLyrics(song.title, song.artist, metadata.durationMs).then(lyrics => {
+                        if (lyrics) {
+                            console.log('Saving lyrics for song (background):', song.id);
+                            updateSong(song.id, { lyrics });
+                        }
+                    });
+                }
+
+                if (Object.keys(updates).length > 0) {
+                    updateSong(song.id, updates);
+
+                    // Notify UI of duration update
+                    if (onUrlFound && updates.duration_ms) {
+                        onUrlFound(song.id, song.audio_sample_url, song.album_cover_url, updates.duration_ms);
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Error fetching missing metadata:', error);
+        }
+    }, [fetchLyrics]);
+
+    const playSong = useCallback(async (song, onUrlFound) => {
         // Prevent re-trigger if already loading this song
-        if (loadingSongId === song.id) return;
+        if (loadingSongIdRef.current === song.id) return;
 
         // If we have the URL, play it but still check for missing metadata
         if (song.audio_sample_url) {
@@ -272,52 +309,15 @@ export const PreviewProvider = ({ children }) => {
                 setLoadingSongId(null);
             }
         }
-    };
+    }, [playPreview, fetchMissingMetadata]);
 
-    const fetchMissingMetadata = async (song, onUrlFound) => {
-        try {
-            const metadata = await findSongMetadata(song.title, song.artist);
-
-            if (metadata) {
-                const updates = {};
-
-                // Save duration if found and not already present
-                if (metadata.durationMs && !song.duration_ms) {
-                    updates.duration_ms = metadata.durationMs;
-                    console.log('Saving duration (background):', metadata.durationMs);
-                }
-
-                // Fetch lyrics in parallel
-                if (!song.lyrics) {
-                    fetchLyrics(song.title, song.artist, metadata.durationMs).then(lyrics => {
-                        if (lyrics) {
-                            console.log('Saving lyrics for song (background):', song.id);
-                            updateSong(song.id, { lyrics });
-                        }
-                    });
-                }
-
-                if (Object.keys(updates).length > 0) {
-                    updateSong(song.id, updates);
-
-                    // Notify UI of duration update
-                    if (onUrlFound && updates.duration_ms) {
-                        onUrlFound(song.id, song.audio_sample_url, song.album_cover_url, updates.duration_ms);
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('Error fetching missing metadata:', error);
-        }
-    };
-
-    const stopPreview = async () => {
+    const stopPreview = useCallback(async () => {
         if (soundRef.current) {
             setIsPlaying(false);
             await fadeOut(soundRef.current);
             await soundRef.current.stopAsync();
         }
-    };
+    }, []);
 
     return (
         <PreviewContext.Provider value={{
