@@ -11,6 +11,7 @@ import { usePreview } from '../context/PreviewContext';
 
 import { useToast } from '../context/ToastContext';
 import PreviewBottomSheet from '../components/PreviewBottomSheet';
+import ShimmerEffect from '../components/ShimmerEffect';
 
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolateColor } from 'react-native-reanimated';
 
@@ -180,7 +181,6 @@ export default function AddSongScreen({ navigation }) {
             />
         );
     }, [currentUri, isPlaying, isLoading, playPreview, handlePreview, handleAddSong]);
-
     return (
         <SafeAreaView style={styles.container} edges={['left', 'right']}>
             <View style={styles.searchContainer}>
@@ -204,21 +204,43 @@ export default function AddSongScreen({ navigation }) {
                 </View>
             </View>
 
-            {loading && <ActivityIndicator size="large" color={theme.colors.primary} style={styles.loader} />}
+            {loading && results.length === 0 && (
+                <View style={[styles.list, { paddingTop: theme.spacing.m }]}>
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <View key={i} style={styles.shimmerItem}>
+                            <ShimmerEffect width={64} height={64} borderRadius={8} style={{ marginRight: 16 }} />
+                            <View style={{ flex: 1 }}>
+                                <ShimmerEffect width="80%" height={20} style={{ marginBottom: 8 }} />
+                                <ShimmerEffect width="60%" height={16} style={{ marginBottom: 4 }} />
+                                <ShimmerEffect width="40%" height={14} />
+                            </View>
+                            <View style={{ flexDirection: 'row' }}>
+                                <ShimmerEffect width={30} height={30} borderRadius={15} style={{ marginLeft: 8 }} />
+                                <ShimmerEffect width={30} height={30} borderRadius={15} style={{ marginLeft: 8 }} />
+                            </View>
+                        </View>
+                    ))}
+                </View>
+            )}
 
             {error && <Text style={styles.error}>{error}</Text>}
 
-            <FlatList
-                data={results}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.trackId.toString()}
-                contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + theme.spacing.xl }]}
-                ListEmptyComponent={
-                    !loading && query.length > 2 ? (
-                        <Text style={styles.emptyText}>No results found.</Text>
-                    ) : null
-                }
-            />
+            {(!loading || results.length > 0) && (
+                <FlatList
+                    data={results}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.trackId.toString()}
+                    contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + theme.spacing.xl }]}
+                    ListEmptyComponent={
+                        !loading && query.length > 2 ? (
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="search-outline" size={60} color={theme.colors.border} />
+                                <Text style={styles.emptyText}>No results found for "{query}"</Text>
+                            </View>
+                        ) : null
+                    }
+                />
+            )}
 
             <PreviewBottomSheet
                 isVisible={previewSheetVisible}
@@ -337,6 +359,22 @@ const styles = StyleSheet.create({
     emptyText: {
         color: theme.colors.textSecondary,
         textAlign: 'center',
+        marginTop: theme.spacing.m,
+    },
+    shimmerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: theme.spacing.m,
+        backgroundColor: theme.colors.surface,
+        marginBottom: theme.spacing.s,
+        borderRadius: theme.borderRadius.m,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
         marginTop: theme.spacing.xl,
+        padding: theme.spacing.xl,
     }
 });

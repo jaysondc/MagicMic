@@ -11,6 +11,7 @@ import Animated, {
     Easing
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
+import ShimmerEffect from './ShimmerEffect';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const TOP_OFFSET = SCREEN_HEIGHT * 0.1; // Max height (90%)
@@ -147,37 +148,44 @@ const PreviewBottomSheet = ({ isVisible, onClose, song, safeBottomPadding = 0 })
                     </GestureDetector>
 
                     <ScrollView contentContainerStyle={styles.content} bounces={false}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
-                        ) : (
-                            <>
-                                <View style={styles.metadataRow}>
-                                    <View style={styles.metaItem}>
-                                        <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
-                                        <Text style={styles.metaText}>
-                                            {song?.trackTimeMillis ? `${Math.floor(song.trackTimeMillis / 60000)}:${((song.trackTimeMillis % 60000) / 1000).toFixed(0).padStart(2, '0')}` : '--:--'}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.metaItem}>
-                                        <Ionicons name="pricetag-outline" size={16} color={theme.colors.textSecondary} />
-                                        <Text style={styles.metaText} numberOfLines={1}>
-                                            {song?.primaryGenreName || 'Unknown Genre'}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.metaItem}>
-                                        <Ionicons name="disc-outline" size={16} color={theme.colors.textSecondary} />
-                                        <Text style={styles.metaText} numberOfLines={1}>
-                                            {song?.collectionName || 'Unknown Album'}
-                                        </Text>
-                                    </View>
-                                </View>
+                        <View style={styles.metadataRow}>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
+                                <Text style={styles.metaText}>
+                                    {song?.trackTimeMillis ? `${Math.floor(song.trackTimeMillis / 60000)}:${((song.trackTimeMillis % 60000) / 1000).toFixed(0).padStart(2, '0')}` : '--:--'}
+                                </Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="pricetag-outline" size={16} color={theme.colors.textSecondary} />
+                                <Text style={styles.metaText} numberOfLines={1}>
+                                    {song?.primaryGenreName || 'Unknown Genre'}
+                                </Text>
+                            </View>
+                            <View style={styles.metaItem}>
+                                <Ionicons name="disc-outline" size={16} color={theme.colors.textSecondary} />
+                                <Text style={styles.metaText} numberOfLines={1}>
+                                    {song?.collectionName || 'Unknown Album'}
+                                </Text>
+                            </View>
+                        </View>
 
-                                <View style={styles.lyricsContainer}>
-                                    <Text style={styles.sectionHeader}>Lyrics</Text>
+                        <View style={styles.lyricsContainer}>
+                            {loading ? (
+                                <View style={styles.lyricsShimmerContainer}>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="100%" height={18} borderRadius={9} /></View>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="100%" height={18} borderRadius={9} /></View>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="100%" height={18} borderRadius={9} /></View>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="80%" height={18} borderRadius={9} /></View>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="90%" height={18} borderRadius={9} /></View>
+                                    <View style={styles.shimmerLine}><ShimmerEffect width="70%" height={18} borderRadius={9} /></View>
+                                    <Text style={[styles.statusText, { marginTop: theme.spacing.m }]}>Fetching lyrics...</Text>
+                                </View>
+                            ) : (
+                                <View style={styles.lyricsContentContainer}>
                                     <Text style={styles.lyricsText}>{lyrics}</Text>
                                 </View>
-                            </>
-                        )}
+                            )}
+                        </View>
                         <View style={{ height: 40 + safeBottomPadding }} />
                     </ScrollView>
                 </Animated.View>
@@ -289,8 +297,35 @@ const styles = StyleSheet.create({
     },
     lyricsText: {
         fontSize: 16,
-        lineHeight: 26,
+        lineHeight: 28,
         color: theme.colors.text,
+        textAlign: 'center',
+        fontStyle: 'italic',
+    },
+    lyricsShimmerContainer: {
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.m,
+        padding: theme.spacing.m,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        alignItems: 'center',
+    },
+    shimmerLine: {
+        marginBottom: 12,
+        width: '100%',
+        alignItems: 'center',
+    },
+    statusText: {
+        color: theme.colors.textSecondary,
+        fontSize: 14,
+        marginTop: theme.spacing.m,
+    },
+    lyricsContentContainer: {
+        backgroundColor: theme.colors.background,
+        borderRadius: theme.borderRadius.m,
+        padding: theme.spacing.m,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
     }
 });
 
