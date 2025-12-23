@@ -103,14 +103,14 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         // Dynamic Haptic Sequence: 3 Hard ticks at first pulse peaks, 3 Medium ticks at second pulse peaks
         const hapticTimers = [
             // Hard Ticks (Peak of first pulses)
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 1),
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 2),
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 3),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 1),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 2),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 3),
 
             // Medium Ticks (Peak of second pulses)
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 6 - 50),
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 7 - 50),
-            setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft), STAGGER_DELAY * 8 - 50),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 6),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 7),
+            setTimeout(() => Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Frequent_Tick), STAGGER_DELAY * 8),
         ];
 
         const timer = setTimeout(() => {
@@ -128,7 +128,7 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
                     }));
                     // Trigger soft haptic when each result appears
                     setTimeout(() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                        Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Gesture_End);
                     }, i * STAGGER_DELAY);
                 });
 
