@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import DraggableFlatList, { ScaleDecorator } from 'react-native-draggable-flatli
 import { Swipeable } from 'react-native-gesture-handler';
 
 import { theme } from '../lib/theme';
-import { getQueue, removeFromQueue, markQueueItemSung, clearQueue, reorderQueue } from '../lib/database';
+import { getQueue, removeFromQueue, markQueueItemSung, clearQueue, clearSungQueue, reorderQueue } from '../lib/database';
 import { useToast } from '../context/ToastContext';
 import { usePreview } from '../context/PreviewContext';
 
@@ -16,6 +16,8 @@ const QueueListItem = ({ item, drag, isActive, onRemove, onMarkSung, onPress, pl
     // Swipeable refs to manually close if needed, 
     // but user wants "releasing the item should automatically complete the action"
     // This implies we use onSwipeableOpen or similar.
+
+    const swipeableRef = useRef(null);
 
     const renderRightActions = (progress, dragX) => {
         return (
@@ -43,6 +45,7 @@ const QueueListItem = ({ item, drag, isActive, onRemove, onMarkSung, onPress, pl
     return (
         <ScaleDecorator>
             <Swipeable
+                ref={swipeableRef}
                 renderRightActions={renderRightActions}
                 renderLeftActions={renderLeftActions}
                 overshootRight={true} // Allow pulling further
@@ -53,6 +56,7 @@ const QueueListItem = ({ item, drag, isActive, onRemove, onMarkSung, onPress, pl
                     } else if (direction === 'right') {
                         onMarkSung(item);
                     }
+                    swipeableRef.current?.close();
                 }}
             >
                 <TouchableOpacity
@@ -117,30 +121,24 @@ export default function QueueScreen({ navigation }) {
 
         Alert.alert(
             "Clear Queue",
-            "Mark all songs as sung before clearing?",
+            "",
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Just Clear",
-                    style: 'destructive',
+                    text: "Clear sung",
                     onPress: async () => {
-                        await clearQueue();
+                        await clearSungQueue();
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         loadQueue();
                     }
                 },
                 {
-                    text: "Mark All Sung",
+                    text: "Clear all",
+                    style: 'destructive',
                     onPress: async () => {
-                        for (const item of queue) {
-                            if (!item.is_completed) { // Only mark unsung ones
-                                await markQueueItemSung(item.song_id);
-                            }
-                        }
                         await clearQueue();
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         loadQueue();
-                        showToast({ message: "All marked & cleared!" });
                     }
                 }
             ]

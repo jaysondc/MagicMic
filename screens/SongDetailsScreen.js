@@ -445,10 +445,6 @@ export default function SongDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.section}>
-                    <RatingWidget rating={song.my_rating || 0} onRatingChange={handleRatingChange} />
-                </View>
-
-                <View style={styles.section}>
                     <View style={styles.statsContainer}>
                         <View style={styles.statBox}>
                             <Text style={styles.statValue}>{song.sing_count || 0}</Text>

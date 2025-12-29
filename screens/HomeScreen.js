@@ -140,8 +140,8 @@ export default function HomeScreen({ navigation, route }) {
     }, []);
 
     const loadData = useCallback(async () => {
-        await Promise.all([loadSongs(), loadTags()]);
-    }, [loadSongs, loadTags]);
+        await Promise.all([loadSongs(), loadTags(), loadQueue()]);
+    }, [loadSongs, loadTags, loadQueue]);
 
     const handleToggleTag = useCallback((tagId) => {
         setSelectedTags(prev => {
@@ -379,11 +379,6 @@ export default function HomeScreen({ navigation, route }) {
                     <RoulettePanel
                         visible={rouletteVisible}
                         songs={rouletteSongs}
-                        isRolling={isRolling}
-                        onCollapse={() => setRouletteVisible(false)}
-                        onRollComplete={() => setIsRolling(false)}
-                        isRolling={isRolling}
-                        onCollapse={() => setRouletteVisible(false)}
                         onRollComplete={() => setIsRolling(false)}
                         onSongPress={handleSongPress}
                         queuedSongIds={queuedSongIds}

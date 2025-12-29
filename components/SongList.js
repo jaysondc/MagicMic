@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
         color: theme.colors.textSecondary,
     },
     queueButton: {
-        padding: theme.spacing.s,
+        padding: theme.spacing.xs,
         justifyContent: 'center',
         alignItems: 'center',
     },
