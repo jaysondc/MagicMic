@@ -17,7 +17,7 @@ export const SONG_ITEM_HEIGHT = 108;
 
 const AnimatedPressable = Animated.createAnimatedComponent(TouchableOpacity);
 
-export const SongListItem = memo(({ item, updates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate }) => {
+export const SongListItem = memo(({ item, updates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, onPreviewUrlUpdate, onAddToQueue, isQueued }) => {
     const pressedValue = useSharedValue(0);
 
     const displayItem = useMemo(() => {
@@ -32,6 +32,12 @@ export const SongListItem = memo(({ item, updates, onSongPress, playSong, loadin
     const handlePlayPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         playSong(displayItem, onPreviewUrlUpdate);
+    };
+
+    const handleAddToQueue = () => {
+        if (isQueued) return; // Should be disabled visually too
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+        onAddToQueue && onAddToQueue(displayItem);
     };
 
     const handlePressIn = () => {
@@ -112,11 +118,23 @@ export const SongListItem = memo(({ item, updates, onSongPress, playSong, loadin
                     </View>
                 )}
             </TouchableOpacity>
-        </Animated.View>
+            
+            <TouchableOpacity 
+                style={[styles.queueButton, isQueued && styles.queueButtonDisabled]}
+                onPress={handleAddToQueue}
+                disabled={isQueued}
+            >
+                <Ionicons 
+                    name={isQueued ? "checkmark-circle" : "add-circle-outline"} 
+                    size={28} 
+                    color={isQueued ? theme.colors.success : theme.colors.primary} 
+                />
+            </TouchableOpacity>
+        </Animated.View >
     );
 });
 
-const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent }, ref) => {
+const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHeaderComponent, queuedSongIds, onAddToQueue }, ref) => {
     const insets = useSafeAreaInsets();
     const { playSong, loadingSongId, currentUri, isPlaying } = usePreview();
 
@@ -134,16 +152,18 @@ const SongList = forwardRef(({ songs, onSongPress, refreshing, onRefresh, ListHe
                 currentUri={currentUri}
                 isPlaying={isPlaying}
                 onPreviewUrlUpdate={handlePreviewUrlUpdate}
+                onAddToQueue={onAddToQueue}
+                isQueued={queuedSongIds ? queuedSongIds.has(item.id) : false}
             />
         );
-    }, [localUpdates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate]);
+    }, [localUpdates, onSongPress, playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate, queuedSongIds, onAddToQueue]);
 
     return (
         <FlashList
             ref={ref}
             data={songs}
             renderItem={renderItem}
-            extraData={{ isPlaying, currentUri, loadingSongId, localUpdates }}
+            extraData={{ isPlaying, currentUri, loadingSongId, localUpdates, queuedSongIds }}
             keyExtractor={(item) => item.id.toString()}
             estimatedItemSize={SONG_ITEM_HEIGHT}
             ListEmptyComponent={
@@ -257,6 +277,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: theme.colors.textSecondary,
     },
+    queueButton: {
+        padding: theme.spacing.s,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    queueButtonDisabled: {
+        opacity: 0.6,
+    }
 });
 
 export default SongList;

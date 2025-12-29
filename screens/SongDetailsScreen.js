@@ -13,7 +13,7 @@ import RatingWidget from '../components/RatingWidget';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import { usePreview } from '../context/PreviewContext';
-import { getSongs, getTags, linkTagToSong, unlinkTagFromSong, deleteSong, updateSong, addSong } from '../lib/database';
+import { getSongs, getTags, linkTagToSong, unlinkTagFromSong, deleteSong, updateSong, addSong, safeAddToQueue, getQueue } from '../lib/database';
 import { findSongMetadata } from '../lib/itunes';
 
 export default function SongDetailsScreen({ route, navigation }) {
@@ -27,6 +27,7 @@ export default function SongDetailsScreen({ route, navigation }) {
     const [lyricsExpanded, setLyricsExpanded] = useState(false);
     const [metadataExpanded, setMetadataExpanded] = useState(false);
     const [loadingMetadata, setLoadingMetadata] = useState(false);
+    const [isQueued, setIsQueued] = useState(false);
 
     // Custom sort: Top, To Try, To Learn always first. Then selected tags (in selection order). Then others.
     const sortedTags = useMemo(() => {
@@ -68,7 +69,14 @@ export default function SongDetailsScreen({ route, navigation }) {
     useEffect(() => {
         loadSongData();
         loadTags();
+        checkQueueStatus();
     }, []);
+
+    const checkQueueStatus = async () => {
+        const queue = await getQueue();
+        const queued = queue.some(item => item.song_id === songId);
+        setIsQueued(queued);
+    };
 
     const loadSongData = async () => {
         const songs = await getSongs();
@@ -456,8 +464,40 @@ export default function SongDetailsScreen({ route, navigation }) {
                             <Text style={styles.statLabel}>Last Sung</Text>
                         </View>
                     </View>
-
                     <View style={styles.actionContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.queueButton,
+                                isQueued && styles.queueButtonDisabled
+                            ]}
+                            onPress={async () => {
+                                if (isQueued) {
+                                    showToast({ message: "Already in queue", type: "info" });
+                                    return;
+                                }
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                                const success = await safeAddToQueue(songId);
+                                if (success) {
+                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                    showToast({ message: "Added to queue" });
+                                    setIsQueued(true);
+                                } else {
+                                    showToast({ message: "Could not add to queue", type: "error" });
+                                }
+                            }}
+                            activeOpacity={isQueued ? 1 : 0.7}
+                        >
+                            <Ionicons
+                                name={isQueued ? "checkmark-circle" : "list-circle"}
+                                size={24}
+                                color={theme.colors.background}
+                                style={{ marginRight: 8 }}
+                            />
+                            <Text style={styles.queueButtonText}>
+                                {isQueued ? "Added to Queue" : "Add to Queue"}
+                            </Text>
+                        </TouchableOpacity>
+
                         <Animated.View style={[styles.markSungButtonContainer, animatedButtonStyle]}>
                             <TouchableOpacity
                                 style={styles.markSungButton}
@@ -604,9 +644,8 @@ export default function SongDetailsScreen({ route, navigation }) {
                         <Text style={styles.deleteButtonText}>Delete Song</Text>
                     </TouchableOpacity>
                 </View>
-
-            </ScrollView>
-        </SafeAreaView>
+            </ScrollView >
+        </SafeAreaView >
     );
 }
 
@@ -781,6 +820,31 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowRadius: 10,
         elevation: 5,
+    },
+    queueButton: {
+        backgroundColor: theme.colors.primary,
+        borderRadius: theme.borderRadius.round,
+        paddingVertical: 14,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: theme.colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 5,
+        width: '100%',
+        marginBottom: theme.spacing.m,
+    },
+    queueButtonDisabled: {
+        backgroundColor: theme.colors.success,
+        opacity: 0.9,
+    },
+    queueButtonText: {
+        color: theme.colors.background,
+        fontSize: 18,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     },
     markSungText: {
         color: theme.colors.background,

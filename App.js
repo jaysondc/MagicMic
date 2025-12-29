@@ -8,6 +8,7 @@ import HomeScreen from './screens/HomeScreen';
 import AddSongScreen from './screens/AddSongScreen';
 import SongDetailsScreen from './screens/SongDetailsScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import QueueScreen from './screens/QueueScreen';
 import { theme } from './lib/theme';
 import { ToastProvider } from './context/ToastContext';
 import { PreviewProvider } from './context/PreviewContext';
@@ -54,6 +55,11 @@ export default function App() {
                   name="Settings"
                   component={SettingsScreen}
                   options={{ title: 'Backup & Restore' }}
+                />
+                <Stack.Screen
+                  name="Queue"
+                  component={QueueScreen}
+                  options={{ headerShown: false }}
                 />
               </Stack.Navigator>
             </NavigationContainer>

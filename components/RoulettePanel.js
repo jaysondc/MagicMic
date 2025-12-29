@@ -33,7 +33,7 @@ const RouletteSlot = ({ song, pulseValue, revealOpacity, props }) => {
         transform: [{ translateY: interpolate(revealOpacity.value, [0, 1], [-10, 0]) }]
     }));
 
-    const { playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate, onSongPress } = props;
+    const { playSong, loadingSongId, currentUri, isPlaying, handlePreviewUrlUpdate, onSongPress, queuedSongIds, onAddToQueue } = props;
 
     return (
         <View style={styles.slot}>
@@ -53,6 +53,8 @@ const RouletteSlot = ({ song, pulseValue, revealOpacity, props }) => {
                         isPlaying={isPlaying}
                         onPreviewUrlUpdate={handlePreviewUrlUpdate}
                         onSongPress={onSongPress}
+                        isQueued={queuedSongIds ? queuedSongIds.has(song.id) : false}
+                        onAddToQueue={onAddToQueue}
                     />
                 </Animated.View>
             )}
@@ -61,7 +63,7 @@ const RouletteSlot = ({ song, pulseValue, revealOpacity, props }) => {
 };
 
 
-export default function RoulettePanel({ visible, songs, isRolling, onCollapse, onRollComplete, onSongPress }) {
+export default function RoulettePanel({ visible, songs, isRolling, onCollapse, onRollComplete, onSongPress, queuedSongIds, onAddToQueue }) {
     const [displaySongs, setDisplaySongs] = useState([]);
 
     const panelProgress = useSharedValue(0);
@@ -173,7 +175,11 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         currentUri,
         isPlaying,
         handlePreviewUrlUpdate,
-        onSongPress
+        isPlaying,
+        handlePreviewUrlUpdate,
+        onSongPress,
+        queuedSongIds,
+        onAddToQueue
     };
 
     return (

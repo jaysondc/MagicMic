@@ -36,5 +36,13 @@ export const mySchema = appSchema({
                 { name: 'tag_id', type: 'string', isIndexed: true },
             ],
         }),
+        tableSchema({
+            name: 'queue_items',
+            columns: [
+                { name: 'song_id', type: 'string', isIndexed: true },
+                { name: 'sort_order', type: 'number' },
+                { name: 'created_at', type: 'number' },
+            ],
+        }),
     ],
 })

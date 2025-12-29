@@ -5,6 +5,7 @@ export default class Song extends Model {
     static table = 'songs'
     static associations = {
         song_tags: { type: 'has_many', foreignKey: 'song_id' },
+        queue_items: { type: 'has_many', foreignKey: 'song_id' },
     }
 
     @field('title') title

@@ -17,7 +17,9 @@ import {
     deleteTag,
     addTag,
     getSongIdsForTag,
-    linkTagToSong
+    linkTagToSong,
+    getQueue,
+    safeAddToQueue,
 } from '../lib/database';
 import { seedData } from '../lib/seedData';
 import { theme } from '../lib/theme';
@@ -53,6 +55,7 @@ export default function HomeScreen({ navigation, route }) {
     const [songs, setSongs] = useState([]);
     const [tags, setTags] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
+    const [queuedSongIds, setQueuedSongIds] = useState(new Set());
 
 
     // Sort State
@@ -71,7 +74,13 @@ export default function HomeScreen({ navigation, route }) {
         // Initial load is also deferred
         InteractionManager.runAfterInteractions(() => {
             loadData();
+            loadQueue();
         });
+    }, []);
+
+    const loadQueue = useCallback(async () => {
+        const queue = await getQueue();
+        setQueuedSongIds(new Set(queue.map(item => item.song_id)));
     }, []);
 
     useEffect(() => {
@@ -187,15 +196,23 @@ export default function HomeScreen({ navigation, route }) {
 
     const listRef = useRef(null);
 
-    // Filter songs by selected tags (OR logic)
+    // Filter songs by selected tags (OR logic) AND exclude queued songs
     const filteredSongs = useMemo(() => {
-        return selectedTags.length > 0
+        let result = selectedTags.length > 0
             ? songs.filter(song =>
                 song.tags && selectedTags.some(selectedTagId =>
                     song.tags.some(songTag => songTag.id === selectedTagId)
                 )
             )
             : songs;
+
+        // Exclude queued songs from roulette/list if desired? 
+        // User said: "roulette should only show songs that AREN'T already in the queue"
+        // But for the main list, we probably want to show them but visually indicate they are queued.
+        // So I should only filter for Roulette, OR I can filter generally. 
+        // Usually you can still see them in the list.
+        // So I will filter them LOCALLY inside the roulette handler.
+        return result;
     }, [songs, selectedTags]);
 
     const handleSortSelect = useCallback((newSortBy) => {
@@ -225,10 +242,23 @@ export default function HomeScreen({ navigation, route }) {
         // Scroll to top when opening roulette
         listRef.current?.scrollToOffset({ offset: 0, animated: true });
 
+        // Filter out songs already in queue for Roulette
+        const candidates = filteredSongs.filter(s => !queuedSongIds.has(s.id));
+
+        if (candidates.length === 0) {
+            showToast({ message: "No unqueued songs match filters" });
+            return;
+        }
+
+        setIsRolling(true);
+        setRouletteVisible(true);
+        // Scroll to top when opening roulette
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+
         // Randomly pick 3 (or fewer if not enough)
-        const shuffled = [...filteredSongs].sort(() => 0.5 - Math.random());
+        const shuffled = [...candidates].sort(() => 0.5 - Math.random());
         setRouletteSongs(shuffled.slice(0, 3));
-    }, [filteredSongs, showToast]);
+    }, [filteredSongs, queuedSongIds, showToast]);
 
     const handleRouletteIconPress = useCallback(() => {
         handleRollRoulette();
@@ -254,6 +284,18 @@ export default function HomeScreen({ navigation, route }) {
         return `${labels[sortBy] || 'Sort'} ${arrow}`;
     };
 
+    const handleAddToQueue = useCallback(async (song) => {
+        const success = await safeAddToQueue(song.id);
+        if (success) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showToast({ message: `Added "${song.title}" to queue` });
+            loadQueue(); // Refresh queue state
+        } else {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            showToast({ message: `"${song.title}" is already in queue`, type: 'error' });
+        }
+    }, [showToast, loadQueue]);
+
 
     const handleSongPress = useCallback((song) => {
         navigation.navigate('SongDetails', { songId: song.id });
@@ -275,6 +317,19 @@ export default function HomeScreen({ navigation, route }) {
                 <View style={styles.headerButtons}>
                     <TouchableOpacity onPress={handleRouletteIconPress} style={styles.headerButton}>
                         <Ionicons name={rouletteVisible ? "shuffle" : "shuffle-outline"} size={24} color={rouletteVisible ? theme.colors.secondary : theme.colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
+                        navigation.navigate('Queue');
+                    }}>
+                        <View style={styles.headerButton}>
+                            <Ionicons name="list" size={24} color={theme.colors.text} />
+                            {queuedSongIds.size > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{queuedSongIds.size}</Text>
+                                </View>
+                            )}
+                        </View>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {
                         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
@@ -327,9 +382,16 @@ export default function HomeScreen({ navigation, route }) {
                         isRolling={isRolling}
                         onCollapse={() => setRouletteVisible(false)}
                         onRollComplete={() => setIsRolling(false)}
+                        isRolling={isRolling}
+                        onCollapse={() => setRouletteVisible(false)}
+                        onRollComplete={() => setIsRolling(false)}
                         onSongPress={handleSongPress}
+                        queuedSongIds={queuedSongIds}
+                        onAddToQueue={handleAddToQueue}
                     />
                 }
+                queuedSongIds={queuedSongIds}
+                onAddToQueue={handleAddToQueue}
             />
 
             <FloatingActionButton onPress={() => {
@@ -407,5 +469,23 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    badge: {
+        position: 'absolute',
+        top: -5,
+        right: -8,
+        backgroundColor: theme.colors.primary,
+        borderRadius: 10,
+        width: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: theme.colors.surface,
+    },
+    badgeText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });

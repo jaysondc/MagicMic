@@ -12,12 +12,13 @@ TODO List for Magic Mic
 - [X] Song Preview
 - [X] Auto-populate tags
 - [X] Roulette based on filters
-- [ ] Add Manually
+- [ ] Add/Edit Manually
 - [X] Sort song list by date added?
 - [X] Download lyrics when adding a song
 - [X] Create toast instead of dialog
 - [X] Delete Tags
 - [X] Song lyric preview bottomsheet in song search
+- [ ] Song Queue 
 
 # Bugs
 - [X] Song list doesn't update when a song is added

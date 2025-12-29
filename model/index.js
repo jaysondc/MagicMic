@@ -4,6 +4,7 @@ import { mySchema } from './schema'
 import Song from './Song'
 import Tag from './Tag'
 import SongTag from './SongTag'
+import QueueItem from './QueueItem'
 
 let adapter;
 
@@ -34,5 +35,6 @@ export const database = new Database({
         Song,
         Tag,
         SongTag,
+        QueueItem,
     ],
 })
