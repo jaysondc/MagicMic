@@ -13,7 +13,16 @@
       "backgroundColor": "#28003A"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jaysondc.magicmic",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "splash": {
+        "image": "./assets/icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#28003A"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +52,12 @@
           }
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b164f989-1239-4445-bfe7-ac8361aa61e9"
+      }
+    },
+    "owner": "jaysondc"
   }
 }

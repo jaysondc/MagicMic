@@ -18,7 +18,7 @@ TODO List for Magic Mic
 - [X] Create toast instead of dialog
 - [X] Delete Tags
 - [X] Song lyric preview bottomsheet in song search
-- [ ] Song Queue 
+- [X] Song Queue 
 
 # Bugs
 - [X] Song list doesn't update when a song is added
@@ -32,6 +32,6 @@ TODO List for Magic Mic
 - [X] Delete button style
 - [X] Move metadata to bottom
 - [X] Loading state for lyrics
-- [ ] Polish loading state for song search
+- [X] Polish loading state for song search
 
 
