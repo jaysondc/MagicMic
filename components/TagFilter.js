@@ -15,6 +15,7 @@ import { theme } from '../lib/theme';
 import { addTag } from '../lib/database';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useDialog } from '../context/DialogContext';
 
 if (Platform.OS === 'android') {
     if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -26,6 +27,7 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
     const [expanded, setExpanded] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [newTagName, setNewTagName] = useState('');
+    const { showDialog } = useDialog();
 
     const toggleExpand = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
@@ -53,18 +55,18 @@ const TagFilter = ({ tags, selectedTags, onToggleTag, onDeleteTag, onTagsChanged
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
         if (!onDeleteTag) return;
 
-        Alert.alert(
-            "Delete Tag",
-            `Are you sure you want to delete "${tag.name}"?`,
-            [
-                { text: "Cancel", style: "cancel" },
+        showDialog({
+            title: "Delete Tag",
+            message: `Are you sure you want to delete "${tag.name}"?`,
+            actions: [
                 {
                     text: "Delete",
                     style: "destructive",
                     onPress: () => onDeleteTag(tag.id)
-                }
-            ]
-        );
+                },
+                { text: "Cancel", style: "cancel" },
+            ],
+        });
     };
 
     const renderTag = (tag) => {

@@ -14,11 +14,13 @@ import * as FileSystem from 'expo-file-system';
 import { Modal } from 'react-native';
 
 import { useCachePopulation } from '../hooks/useCachePopulation';
+import { useDialog } from '../context/DialogContext';
 
 export default function SettingsScreen({ navigation }) {
     const [isLoading, setIsLoading] = useState(false);
     const { showToast } = useToast();
 
+    const { showDialog } = useDialog();
     const {
         progress: cacheProgress,
         startCachePopulation,
@@ -42,18 +44,21 @@ export default function SettingsScreen({ navigation }) {
             // Share dialog gives own feedback, but we can toast too
             showToast({ message: 'Export initiated', type: 'success' });
         } catch (error) {
-            Alert.alert('Export Failed', error.message);
+            showDialog({
+                title: 'Export Failed',
+                message: error.message,
+                actions: [{ text: 'OK', style: 'cancel' }]
+            });
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleImport = async () => {
-        Alert.alert(
-            'Restore Backup',
-            'This will OVERWRITE all current songs and tags with the backup data. This cannot be undone. Are you sure?',
-            [
-                { text: 'Cancel', style: 'cancel' },
+        showDialog({
+            title: 'Restore Backup',
+            message: 'This will OVERWRITE all current songs and tags with the backup data. This cannot be undone. Are you sure?',
+            actions: [
                 {
                     text: 'Import & Overwrite',
                     style: 'destructive',
@@ -73,22 +78,26 @@ export default function SettingsScreen({ navigation }) {
                                 );
                             }
                         } catch (error) {
-                            Alert.alert('Import Failed', error.message);
+                            showDialog({
+                                title: 'Import Failed',
+                                message: error.message,
+                                actions: [{ text: 'OK', style: 'cancel' }]
+                            });
                         } finally {
                             setIsLoading(false);
                         }
                     },
                 },
+                { text: 'Cancel', style: 'cancel' },
             ]
-        );
+        });
     };
 
     const handleSeed = () => {
-        Alert.alert(
-            'Seed Database',
-            'This will reset the database and load sample data. All existing data will be lost.',
-            [
-                { text: 'Cancel', style: 'cancel' },
+        showDialog({
+            title: 'Seed Database',
+            message: 'This will reset the database and load sample data. All existing data will be lost.',
+            actions: [
                 {
                     text: 'Seed',
                     style: 'destructive',
@@ -114,15 +123,16 @@ export default function SettingsScreen({ navigation }) {
                             setIsLoading(false);
                         }
                     }
-                }
+                },
+                { text: 'Cancel', style: 'cancel' },
             ]
-        );
+        });
     };
     const handlePopulateCache = async () => {
-        Alert.alert(
-            'Populate Cache',
-            'This will search for missing metadata (art, lyrics) and download song previews for ALL songs. This may consume data. Continue?',
-            [
+        showDialog({
+            title: 'Populate Cache',
+            message: 'This will search for missing metadata (art, lyrics) and download song previews for ALL songs. This may consume data. Continue?',
+            actions: [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Start',
@@ -142,10 +152,8 @@ export default function SettingsScreen({ navigation }) {
                     }
                 }
             ]
-        );
+        });
     };
-
-    // ... exports/imports/handleSeed ...
 
     return (
         <View style={styles.container}>
@@ -207,10 +215,6 @@ export default function SettingsScreen({ navigation }) {
                                 ]}
                             />
                         </View>
-
-                        <Text style={styles.dataText}>
-                            Data Used: {formatBytes(cacheProgress.bytesDownloaded)}
-                        </Text>
 
                         <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelCache}>
                             <Text style={styles.modalCancelText}>Cancel</Text>

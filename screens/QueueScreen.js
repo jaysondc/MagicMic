@@ -10,6 +10,7 @@ import { theme } from '../lib/theme';
 import { getQueue, removeFromQueue, markQueueItemSung, clearQueue, clearSungQueue, reorderQueue } from '../lib/database';
 import { useToast } from '../context/ToastContext';
 import { usePreview } from '../context/PreviewContext';
+import { useDialog } from '../context/DialogContext';
 
 const QueueListItem = ({ item, drag, isActive, onRemove, onMarkSung, onPress, playSong, isPlaying, isCurrent }) => {
 
@@ -101,6 +102,7 @@ export default function QueueScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const { playSong, isPlaying, currentUri, stopPreview } = usePreview();
+    const { showDialog } = useDialog();
     const [queue, setQueue] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -119,11 +121,11 @@ export default function QueueScreen({ navigation }) {
     const handleClearQueue = () => {
         if (queue.length === 0) return;
 
-        Alert.alert(
-            "Clear Queue",
-            "",
-            [
-                { text: "Cancel", style: "cancel" },
+        showDialog({
+            title: "Clear Queue",
+            message: "Choose which songs to remove from the queue.",
+            actions: [
+
                 {
                     text: "Clear sung",
                     onPress: async () => {
@@ -140,9 +142,10 @@ export default function QueueScreen({ navigation }) {
                         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                         loadQueue();
                     }
-                }
+                },
+                { text: "Cancel", style: "cancel" },
             ]
-        );
+        });
     };
 
     const handleRemove = useCallback(async (item) => {

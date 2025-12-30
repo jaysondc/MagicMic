@@ -25,8 +25,7 @@ const SORT_OPTIONS = [
     { id: 'created_at', label: 'Added', icon: 'calendar-outline' },
     { id: 'last_sung_date', label: 'Last Sung', icon: 'mic-outline' },
     { id: 'sing_count', label: 'Times Sung', icon: 'stats-chart-outline' },
-    { id: 'my_rating', label: 'Rating', icon: 'star-outline' },
-    { id: 'updated_at', label: 'Updated', icon: 'time-outline' },
+    { id: 'updated_at', label: 'Edited', icon: 'time-outline' },
     { id: 'title', label: 'Song Name', icon: 'musical-note-outline' },
     { id: 'artist', label: 'Artist Name', icon: 'person-outline' },
 ];

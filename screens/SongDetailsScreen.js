@@ -13,6 +13,7 @@ import RatingWidget from '../components/RatingWidget';
 import { theme } from '../lib/theme';
 import { useToast } from '../context/ToastContext';
 import { usePreview } from '../context/PreviewContext';
+import { useDialog } from '../context/DialogContext';
 import { getSongs, getTags, linkTagToSong, unlinkTagFromSong, deleteSong, updateSong, addSong, safeAddToQueue, getQueue } from '../lib/database';
 import { findSongMetadata } from '../lib/itunes';
 
@@ -20,6 +21,7 @@ export default function SongDetailsScreen({ route, navigation }) {
     const { songId } = route.params;
     const { showToast } = useToast();
     const { playPreview, stopPreview, currentUri, isPlaying, duration, position } = usePreview();
+    const { showDialog } = useDialog();
 
     const [song, setSong] = useState(null);
     const [allTags, setAllTags] = useState([]);
@@ -269,11 +271,10 @@ export default function SongDetailsScreen({ route, navigation }) {
     };
 
     const handleDelete = async () => {
-        Alert.alert(
-            "Delete Song",
-            "Are you sure you want to delete this song?",
-            [
-                { text: "Cancel", style: "cancel" },
+        showDialog({
+            title: "Delete Song",
+            message: "Are you sure you want to delete this song?",
+            actions: [
                 {
                     text: "Delete",
                     style: "destructive",
@@ -311,9 +312,10 @@ export default function SongDetailsScreen({ route, navigation }) {
                             }
                         });
                     }
-                }
+                },
+                { text: "Cancel", style: "cancel" },
             ]
-        );
+        });
     };
 
     const handleToggleStatus = async () => {

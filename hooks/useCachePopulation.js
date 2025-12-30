@@ -17,7 +17,6 @@ export const useCachePopulation = () => {
 
     // Use a ref for the AbortController to persist across renders and closures
     const abortController = useRef(null);
-    const lastUpdate = useRef(0);
 
     const ensureDirExists = async (dir) => {
         const dirInfo = await FileSystem.getInfoAsync(dir);

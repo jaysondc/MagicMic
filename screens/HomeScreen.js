@@ -275,7 +275,6 @@ export default function HomeScreen({ navigation, route }) {
             'created_at': 'Added',
             'last_sung_date': 'Sung',
             'sing_count': '# Sung',
-            'my_rating': 'Rating',
             'updated_at': 'Updated',
             'title': 'Song',
             'artist': 'Artist'
