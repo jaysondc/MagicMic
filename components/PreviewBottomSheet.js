@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../lib/theme';
+import { fetchLyrics as fetchLyricsFromApi } from '../lib/lyrics';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -62,16 +63,9 @@ const PreviewBottomSheet = ({ isVisible, onClose, song, safeBottomPadding = 0 })
 
         setLoading(true);
         try {
-            let url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(songData.artistName)}&track_name=${encodeURIComponent(songData.trackName)}`;
-            if (songData.trackTimeMillis) {
-                const durationSeconds = Math.round(songData.trackTimeMillis / 1000);
-                url += `&duration=${durationSeconds}`;
-            }
-
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                setLyrics(data.plainLyrics || "No lyrics found.");
+            const fetchedLyrics = await fetchLyricsFromApi(songData);
+            if (fetchedLyrics) {
+                setLyrics(fetchedLyrics);
             } else {
                 setLyrics("Lyrics not available for this song.");
             }

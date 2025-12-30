@@ -176,7 +176,6 @@ export default function RoulettePanel({ visible, songs, isRolling, onCollapse, o
         isPlaying,
         handlePreviewUrlUpdate,
         isPlaying,
-        handlePreviewUrlUpdate,
         onSongPress,
         queuedSongIds,
         onAddToQueue

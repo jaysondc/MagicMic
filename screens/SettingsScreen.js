@@ -1,18 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Button, InteractionManager } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Button, InteractionManager, TouchableOpacity } from 'react-native';
 import { theme } from '../lib/theme';
 import { BackupService } from '../services/BackupService';
-import { TouchableOpacity } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { useToast } from '../context/ToastContext';
 import { resetDatabase, seedDatabase } from '../lib/database';
 import { seedData } from '../lib/seedData';
 import { CommonActions } from '@react-navigation/native';
+import { getSongs, updateSong } from '../lib/database';
+import { findSongMetadata } from '../lib/itunes';
+import { fetchLyrics } from '../lib/lyrics';
+import * as FileSystem from 'expo-file-system';
+import { Modal } from 'react-native';
+
+import { useCachePopulation } from '../hooks/useCachePopulation';
 
 export default function SettingsScreen({ navigation }) {
     const [isLoading, setIsLoading] = useState(false);
     const { showToast } = useToast();
 
+    const {
+        progress: cacheProgress,
+        startCachePopulation,
+        cancelCachePopulation: handleCancelCache,
+        hideProgressModal
+    } = useCachePopulation();
+
+    const formatBytes = (bytes, decimals = 2) => {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    };
     const handleExport = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         setIsLoading(true);
@@ -97,6 +118,34 @@ export default function SettingsScreen({ navigation }) {
             ]
         );
     };
+    const handlePopulateCache = async () => {
+        Alert.alert(
+            'Populate Cache',
+            'This will search for missing metadata (art, lyrics) and download song previews for ALL songs. This may consume data. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Start',
+                    onPress: () => {
+                        startCachePopulation((cancelled, totalBytes) => {
+                            if (cancelled) {
+                                showToast({ message: `Cancelled. Used ${formatBytes(totalBytes)}`, type: 'info' });
+                            } else {
+                                showToast({ message: `Cache populated! Used ${formatBytes(totalBytes)}`, type: 'success' });
+                            }
+
+                            // Close modal after a delay
+                            setTimeout(() => {
+                                hideProgressModal();
+                            }, 1000);
+                        });
+                    }
+                }
+            ]
+        );
+    };
+
+    // ... exports/imports/handleSeed ...
 
     return (
         <View style={styles.container}>
@@ -122,8 +171,53 @@ export default function SettingsScreen({ navigation }) {
                         <Text style={styles.buttonText}>Seed Database</Text>
                         <Text style={styles.buttonSubtext}>Reset and load sample data</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.button} onPress={handlePopulateCache}>
+                        <Text style={styles.buttonText}>Populate Cache</Text>
+                        <Text style={styles.buttonSubtext}>Fetch metadata and download previews</Text>
+                    </TouchableOpacity>
                 </View>
             )}
+
+
+            <Modal
+                visible={cacheProgress.visible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={handleCancelCache}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Populating Cache</Text>
+
+                        <ActivityIndicator size="large" color={theme.colors.primary} style={styles.modalSpinner} />
+
+                        <Text style={styles.progressText}>
+                            Processing: {cacheProgress.current} / {cacheProgress.total}
+                        </Text>
+                        <Text style={styles.currentSongText} numberOfLines={1}>
+                            {cacheProgress.currentSongName}
+                        </Text>
+
+                        <View style={styles.progressBar}>
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    { width: `${cacheProgress.total ? (cacheProgress.current / cacheProgress.total) * 100 : 0}%` }
+                                ]}
+                            />
+                        </View>
+
+                        <Text style={styles.dataText}>
+                            Data Used: {formatBytes(cacheProgress.bytesDownloaded)}
+                        </Text>
+
+                        <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelCache}>
+                            <Text style={styles.modalCancelText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -173,4 +267,71 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.border,
         marginVertical: 10,
     },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    modalContent: {
+        backgroundColor: theme.colors.surface,
+        borderRadius: 16,
+        padding: 24,
+        width: '100%',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: theme.colors.border
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: theme.colors.text,
+        marginBottom: 20
+    },
+    modalSpinner: {
+        marginBottom: 20
+    },
+    progressText: {
+        fontSize: 16,
+        color: theme.colors.text,
+        marginBottom: 8,
+        fontWeight: '600'
+    },
+    currentSongText: {
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        marginBottom: 20,
+        textAlign: 'center'
+    },
+    progressBar: {
+        width: '100%',
+        height: 8,
+        backgroundColor: theme.colors.background,
+        borderRadius: 4,
+        overflow: 'hidden',
+        marginBottom: 16
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: theme.colors.primary,
+    },
+    dataText: {
+        fontSize: 14,
+        color: theme.colors.textSecondary,
+        fontVariant: ['tabular-nums'],
+        marginBottom: 20
+    },
+    modalCancelButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 25,
+        backgroundColor: theme.colors.error, // Solid red
+        borderRadius: 25,
+        marginTop: 10
+    },
+    modalCancelText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        fontSize: 16
+    }
 });

@@ -379,7 +379,9 @@ export default function HomeScreen({ navigation, route }) {
                     <RoulettePanel
                         visible={rouletteVisible}
                         songs={rouletteSongs}
+                        onCollapse={() => setRouletteVisible(false)}
                         onRollComplete={() => setIsRolling(false)}
+                        isRolling={isRolling}
                         onSongPress={handleSongPress}
                         queuedSongIds={queuedSongIds}
                         onAddToQueue={handleAddToQueue}
